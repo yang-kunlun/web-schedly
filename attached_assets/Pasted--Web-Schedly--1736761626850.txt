@@ -1,0 +1,2049 @@
+### 一、设计方案文档（Web版）
+
+为了将“卡片计划（Schedly）”从移动端扩展到网页版，我们需要重新设计界面以适应桌面环境，同时保持良好的用户体验和一致的品牌形象。以下是针对网页版的详细设计方案：
+
+#### 1. 设计原则
+
+- **响应式设计**：确保在不同屏幕尺寸下（桌面、平板、手机）都能提供良好的用户体验。
+- **直观易用**：简化用户操作，减少点击次数，通过直观的布局和交互提升使用效率。
+- **现代美观**：采用简洁、现代的设计风格，使用高级感和科技感的配色方案。
+- **高效交互**：利用悬停、拖拽等交互方式提升用户体验，使操作更加流畅和自然。
+
+#### 2. 页面布局
+
+- **顶部导航栏**：
+  - **左侧**：Logo和产品名称“卡片计划（Schedly）”。
+  - **中间**：日期选择器（显示当前月份和年份，左右箭头切换月份）。
+  - **右侧**：用户头像和设置按钮。
+
+- **主内容区**：
+  - **左侧**：垂直时间轴，显示一天24小时或用户设定的有效时间段，标注关键时间点。
+  - **右侧**：日程卡片区域，根据时间轴排列日程卡片。
+
+- **右侧边栏（可选）**：
+  - **计划/日程广场**：展示共享的日程模板或热门计划，用户可以浏览、复制并个性化修改。
+  - **用户画像管理**：展示和管理用户的个人画像数据。
+
+- **浮动按钮**：
+  - **新增日程**：固定在页面右下角，用于快速创建新日程。
+
+#### 3. 关键功能模块
+
+1. **日期选择与导航**：
+   - 显示当前月份和年份，左右箭头切换月份。
+   - 下方一行显示当前周的日期和星期，支持点击选择不同日期。
+
+2. **非线性时间轴**：
+   - 左侧显示时间轴，标注每个日程的开始和结束时间。
+   - 根据日程持续时间动态调整卡片高度，实现非线性布局。
+
+3. **日程卡片**：
+   - **进行中**：渐变色背景，突出显示，支持展开查看详细信息。
+   - **未开始**：浅色背景，显示主题和开始时间。
+   - **已完成**：置灰背景，主题文字划线，折叠展示，仅显示主题和开始时间。
+   - **交互**：
+     - **完成按钮**：标记日程为完成状态。
+     - **编辑按钮**：跳转到编辑页面或弹出编辑对话框。
+     - **展开/收起**：点击卡片或特定区域展开详细信息，折叠时仅显示关键信息。
+
+4. **计划/日程广场**：
+   - 展示高质量的日程模板，用户可以浏览、点赞、收藏。
+   - 支持一键导入模板，并通过AI进行个性化修改。
+
+5. **用户画像积累与管理**：
+   - 在用户使用过程中，自动收集和更新用户画像数据。
+   - 提供隐私设置，允许用户管理和查看自己的画像数据。
+
+6. **新增/编辑日程**：
+   - **新增日程**：通过浮动按钮打开新建日程对话框，填写必要信息，AI自动补全细节。
+   - **编辑日程**：在编辑页面或弹出对话框中修改日程信息，保存后自动更新时间轴和卡片位置。
+
+#### 4. 视觉设计
+
+- **配色方案**：
+  - 主色调：柔和的橙色（与移动端保持一致）。
+  - 辅助色：浅灰色、白色，用于背景和分隔线。
+  - 状态色：
+    - 进行中：粉红渐变色。
+    - 未开始：淡蓝色或淡黄色。
+    - 已完成：灰色。
+
+- **字体与图标**：
+  - 使用现代、易读的字体，如Roboto或Noto Sans。
+  - 使用统一风格的图标库，如FontAwesome或Material Icons。
+
+- **动效**：
+  - 卡片的展开与折叠动画。
+  - 按钮点击反馈（颜色变化、轻微缩放）。
+  - 页面切换时的过渡动画。
+
+#### 5. 技术选型
+
+- **前端框架**：React.js + TypeScript
+- **UI 库**：Material-UI 或 Ant Design
+- **状态管理**：Redux 或 Context API
+- **路由管理**：React Router
+- **后端接口**：RESTful API 或 GraphQL
+- **图表绘制**：D3.js 或 Recharts（用于时间轴）
+- **样式管理**：CSS-in-JS（如 Styled Components）或 Sass
+
+### 二、开发计划大纲
+
+#### 1. 时间范围
+
+- **设计阶段**：2025年1月3日 - 2025年1月10日
+- **开发阶段**：2025年1月11日 - 2025年2月28日
+  - 前端开发：React.js
+  - 后端开发：Node.js + Express 或其他后端技术
+- **测试阶段**：2025年3月1日 - 2025年3月15日
+- **上线准备**：2025年3月16日 - 2025年3月31日
+
+#### 2. 详细任务
+
+##### 设计阶段（2025年1月3日 - 2025年1月10日）
+
+1. **低保真原型设计**：
+   - 使用工具（如 Figma、Sketch）绘制低保真原型。
+   - 包含主要页面：主页、编辑页、新建页、广场页。
+   - 确认用户流程和交互逻辑。
+
+2. **竞品分析与技术选型**：
+   - 分析类似产品（如 Google Calendar、Notion）的优缺点。
+   - 确定前端框架、UI 库、状态管理方案等技术栈。
+
+3. **高保真设计**：
+   - 根据低保真原型制作高保真设计稿。
+   - 定义颜色、字体、图标等视觉元素。
+
+##### 开发阶段（2025年1月11日 - 2025年2月28日）
+
+1. **项目初始化**：
+   - 搭建 React.js 项目，配置 TypeScript。
+   - 集成 UI 库（Material-UI 或 Ant Design）。
+
+2. **核心组件开发**：
+   - **顶部日期选择器**：
+     - 实现月份切换和日期选择功能。
+   - **时间轴组件**：
+     - 使用 D3.js 或其他图表库绘制非线性时间轴。
+   - **日程卡片组件**：
+     - 实现不同状态（进行中、未开始、已完成）的样式和交互。
+   - **编辑/新建日程对话框**：
+     - 表单设计，集成时间选择器和AI自动补全功能。
+   - **计划/日程广场组件**：
+     - 展示模板，支持一键导入和个性化修改。
+
+3. **状态管理与数据同步**：
+   - 配置 Redux 或 Context API 管理全局状态。
+   - 实现日程数据的增删改查功能，与后端 API 同步。
+
+4. **AI 集成**：
+   - 调用后端 AI 服务进行日程补全和个性化推荐。
+   - 显示 AI 处理进度（加载动画或进度条）。
+
+5. **用户画像管理**：
+   - 实现隐私设置界面。
+   - 设计后台接口支持用户画像数据的收集与更新。
+
+6. **响应式设计**：
+   - 确保页面在不同设备和屏幕尺寸下的适配性。
+
+##### 测试阶段（2025年3月1日 - 2025年3月15日）
+
+1. **功能测试**：
+   - 测试所有核心功能是否正常运行。
+   - 验证用户流程和交互逻辑。
+
+2. **用户体验测试**：
+   - 收集用户反馈，优化界面和交互。
+   - 修复发现的问题和Bug。
+
+3. **性能优化**：
+   - 优化页面加载速度和响应时间。
+   - 确保时间轴和卡片渲染流畅。
+
+##### 上线准备（2025年3月16日 - 2025年3月31日）
+
+1. **部署准备**：
+   - 配置生产环境，部署前端和后端服务。
+   - 确保数据安全和隐私保护。
+
+2. **上线发布**：
+   - 发布网页版，进行最终验证。
+   - 准备上线文档和用户指南。
+
+3. **运营准备**：
+   - 监控系统运行状态，及时处理问题。
+   - 计划后续功能迭代和优化。
+
+### 三、示例代码（React.js + TypeScript）
+
+以下是基于React.js的网页版“卡片计划（Schedly）”的示例代码。该示例包括主要的页面和组件，展示如何实现日期选择、时间轴、日程卡片、编辑/新建日程等功能。
+
+#### 文件结构
+
+```
+schedly-web/
+├── public/
+│   └── index.html
+├── src/
+│   ├── components/
+│   │   ├── DateHeader.tsx
+│   │   ├── TimeAxis.tsx
+│   │   ├── ScheduleCard.tsx
+│   │   ├── ScheduleTimeline.tsx
+│   │   ├── EditScheduleModal.tsx
+│   │   └── NewScheduleModal.tsx
+│   ├── models/
+│   │   └── Schedule.ts
+│   ├── services/
+│   │   └── ScheduleService.ts
+│   ├── App.tsx
+│   ├── index.tsx
+│   └── styles/
+│       └── App.css
+├── package.json
+└── tsconfig.json
+```
+
+#### 1. `Schedule.ts`（数据模型）
+
+```typescript
+// src/models/Schedule.ts
+
+export interface Schedule {
+  id: string;
+  title: string;
+  startTime: Date;
+  endTime: Date;
+  isDone: boolean;
+  location?: string;
+  icon?: string;
+  remarks?: string;
+}
+```
+
+#### 2. `ScheduleService.ts`（模拟服务）
+
+```typescript
+// src/services/ScheduleService.ts
+
+import { Schedule } from '../models/Schedule';
+import { v4 as uuidv4 } from 'uuid';
+
+class ScheduleService {
+  private schedules: Schedule[] = [
+    {
+      id: '1',
+      title: '回复邮件',
+      startTime: new Date(2025, 0, 8, 5, 45),
+      endTime: new Date(2025, 0, 8, 6, 0),
+      isDone: false,
+      icon: '@',
+    },
+    {
+      id: '2',
+      title: '起床啦!',
+      startTime: new Date(2025, 0, 8, 7, 15),
+      endTime: new Date(2025, 0, 8, 7, 30),
+      isDone: false,
+      icon: '⏰',
+    },
+    {
+      id: '3',
+      title: '去跑步!',
+      startTime: new Date(2025, 0, 8, 11, 0),
+      endTime: new Date(2025, 0, 8, 12, 0),
+      isDone: false,
+      icon: '🏃‍♂️',
+    },
+    {
+      id: '4',
+      title: '看电影',
+      startTime: new Date(2025, 0, 8, 12, 15),
+      endTime: new Date(2025, 0, 8, 13, 45),
+      isDone: false,
+      icon: '🎬',
+    },
+    {
+      id: '5',
+      title: '起床啦!!',
+      startTime: new Date(2025, 0, 8, 19, 5),
+      endTime: new Date(2025, 0, 8, 19, 30),
+      isDone: false,
+      icon: '⏰',
+    },
+    {
+      id: '6',
+      title: '晚安！',
+      startTime: new Date(2025, 0, 8, 23, 0),
+      endTime: new Date(2025, 0, 8, 23, 15),
+      isDone: false,
+      icon: '🌙',
+    },
+  ];
+
+  getSchedulesByDate(date: Date): Schedule[] {
+    return this.schedules.filter(
+      (s) =>
+        s.startTime.getFullYear() === date.getFullYear() &&
+        s.startTime.getMonth() === date.getMonth() &&
+        s.startTime.getDate() === date.getDate()
+    );
+  }
+
+  addSchedule(schedule: Schedule) {
+    this.schedules.push(schedule);
+  }
+
+  updateSchedule(updated: Schedule) {
+    const index = this.schedules.findIndex((s) => s.id === updated.id);
+    if (index !== -1) {
+      this.schedules[index] = updated;
+    }
+  }
+
+  toggleDone(id: string) {
+    const schedule = this.schedules.find((s) => s.id === id);
+    if (schedule) {
+      schedule.isDone = !schedule.isDone;
+    }
+  }
+}
+
+export default new ScheduleService();
+```
+
+#### 3. `DateHeader.tsx`（顶部日期选择组件）
+
+```tsx
+// src/components/DateHeader.tsx
+
+import React from 'react';
+import { format, addMonths, subMonths } from 'date-fns';
+import { zhCN } from 'date-fns/locale';
+
+interface DateHeaderProps {
+  currentMonth: Date;
+  onMonthChange: (newMonth: Date) => void;
+  weekDays: Date[];
+  selectedDate: Date;
+  onSelectDay: (day: Date) => void;
+}
+
+const DateHeader: React.FC<DateHeaderProps> = ({
+  currentMonth,
+  onMonthChange,
+  weekDays,
+  selectedDate,
+  onSelectDay,
+}) => {
+  return (
+    <div className="date-header">
+      <div className="month-navigation">
+        <button onClick={() => onMonthChange(subMonths(currentMonth, 1))}>&lt;</button>
+        <span>{format(currentMonth, 'yyyy年MM月', { locale: zhCN })}</span>
+        <button onClick={() => onMonthChange(addMonths(currentMonth, 1))}>&gt;</button>
+      </div>
+      <div className="week-days">
+        {weekDays.map((day) => {
+          const isSelected =
+            day.getFullYear() === selectedDate.getFullYear() &&
+            day.getMonth() === selectedDate.getMonth() &&
+            day.getDate() === selectedDate.getDate();
+          return (
+            <div
+              key={day.toDateString()}
+              className={`week-day ${isSelected ? 'selected' : ''}`}
+              onClick={() => onSelectDay(day)}
+            >
+              <span>{format(day, 'EEE', { locale: zhCN })}</span>
+              <span>{format(day, 'd')}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export default DateHeader;
+```
+
+#### 4. `TimeAxis.tsx`（时间轴组件）
+
+```tsx
+// src/components/TimeAxis.tsx
+
+import React from 'react';
+
+interface TimeAxisProps {
+  day: Date;
+  schedules: any[]; // Replace with Schedule type if needed
+}
+
+const TimeAxis: React.FC<TimeAxisProps> = ({ day, schedules }) => {
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+
+  return (
+    <div className="time-axis">
+      {hours.map((hour) => (
+        <div key={hour} className="time-slot">
+          <span>{`${hour}:00`}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default TimeAxis;
+```
+
+#### 5. `ScheduleCard.tsx`（日程卡片组件）
+
+```tsx
+// src/components/ScheduleCard.tsx
+
+import React, { useState } from 'react';
+import { Schedule } from '../models/Schedule';
+import ScheduleService from '../services/ScheduleService';
+
+interface ScheduleCardProps {
+  schedule: Schedule;
+  onEdit: (schedule: Schedule) => void;
+  onToggleDone: (id: string) => void;
+}
+
+const ScheduleCard: React.FC<ScheduleCardProps> = ({ schedule, onEdit, onToggleDone }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const handleToggleDone = () => {
+    ScheduleService.toggleDone(schedule.id);
+    onToggleDone(schedule.id);
+  };
+
+  const handleExpand = () => {
+    setIsExpanded(!isExpanded);
+  };
+
+  const isOngoing =
+    !schedule.isDone &&
+    new Date() >= schedule.startTime &&
+    new Date() <= schedule.endTime;
+
+  const cardClass = schedule.isDone
+    ? 'schedule-card done'
+    : isOngoing
+    ? 'schedule-card ongoing'
+    : 'schedule-card future';
+
+  return (
+    <div className={cardClass}>
+      <div className="card-header">
+        <span
+          className={`schedule-title ${schedule.isDone ? 'completed' : ''}`}
+          onClick={handleExpand}
+        >
+          {schedule.title}
+        </span>
+        <div className="card-actions">
+          <button onClick={() => onEdit(schedule)}>编辑</button>
+          <button onClick={handleToggleDone}>
+            {schedule.isDone ? '未完成' : '完成'}
+          </button>
+        </div>
+      </div>
+      {!schedule.isDone || isExpanded ? (
+        <div className="card-details">
+          <div className="detail-item">
+            <span>时间:</span>
+            <span>
+              {schedule.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -{' '}
+              {schedule.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+          {schedule.location && (
+            <div className="detail-item">
+              <span>地点:</span>
+              <span>{schedule.location}</span>
+            </div>
+          )}
+          {schedule.remarks && (
+            <div className="detail-item">
+              <span>备注:</span>
+              <span>{schedule.remarks}</span>
+            </div>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+export default ScheduleCard;
+```
+
+#### 6. `ScheduleTimeline.tsx`（时间轴与卡片布局）
+
+```tsx
+// src/components/ScheduleTimeline.tsx
+
+import React from 'react';
+import { Schedule } from '../models/Schedule';
+import ScheduleCard from './ScheduleCard';
+import TimeAxis from './TimeAxis';
+
+interface ScheduleTimelineProps {
+  day: Date;
+  schedules: Schedule[];
+  onEdit: (schedule: Schedule) => void;
+  onToggleDone: (id: string) => void;
+}
+
+const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({
+  day,
+  schedules,
+  onEdit,
+  onToggleDone,
+}) => {
+  // Sort schedules by start time
+  const sortedSchedules = [...schedules].sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+
+  return (
+    <div className="schedule-timeline">
+      <TimeAxis day={day} schedules={schedules} />
+      <div className="cards-container">
+        {sortedSchedules.map((schedule) => (
+          <ScheduleCard
+            key={schedule.id}
+            schedule={schedule}
+            onEdit={onEdit}
+            onToggleDone={onToggleDone}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default ScheduleTimeline;
+```
+
+#### 7. `EditScheduleModal.tsx`（编辑日程模态框）
+
+```tsx
+// src/components/EditScheduleModal.tsx
+
+import React, { useState } from 'react';
+import { Schedule } from '../models/Schedule';
+import ScheduleService from '../services/ScheduleService';
+
+interface EditScheduleModalProps {
+  schedule: Schedule;
+  onClose: () => void;
+  onSave: () => void;
+}
+
+const EditScheduleModal: React.FC<EditScheduleModalProps> = ({ schedule, onClose, onSave }) => {
+  const [title, setTitle] = useState(schedule.title);
+  const [startTime, setStartTime] = useState(schedule.startTime);
+  const [endTime, setEndTime] = useState(schedule.endTime);
+  const [isDone, setIsDone] = useState(schedule.isDone);
+  const [location, setLocation] = useState(schedule.location || '');
+  const [remarks, setRemarks] = useState(schedule.remarks || '');
+
+  const handleSave = () => {
+    const updatedSchedule: Schedule = {
+      ...schedule,
+      title,
+      startTime,
+      endTime,
+      isDone,
+      location,
+      remarks,
+    };
+    ScheduleService.updateSchedule(updatedSchedule);
+    onSave();
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal">
+        <h2>编辑日程</h2>
+        <label>
+          主题:
+          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
+        </label>
+        <label>
+          开始时间:
+          <input
+            type="datetime-local"
+            value={startTime.toISOString().slice(0, 16)}
+            onChange={(e) => setStartTime(new Date(e.target.value))}
+          />
+        </label>
+        <label>
+          结束时间:
+          <input
+            type="datetime-local"
+            value={endTime.toISOString().slice(0, 16)}
+            onChange={(e) => setEndTime(new Date(e.target.value))}
+          />
+        </label>
+        <label>
+          地点:
+          <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
+        </label>
+        <label>
+          备注:
+          <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} />
+        </label>
+        <label>
+          已完成:
+          <input
+            type="checkbox"
+            checked={isDone}
+            onChange={(e) => setIsDone(e.target.checked)}
+          />
+        </label>
+        <div className="modal-actions">
+          <button onClick={handleSave}>保存</button>
+          <button onClick={onClose}>取消</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default EditScheduleModal;
+```
+
+#### 8. `NewScheduleModal.tsx`（新建日程模态框）
+
+```tsx
+// src/components/NewScheduleModal.tsx
+
+import React, { useState } from 'react';
+import { Schedule } from '../models/Schedule';
+import ScheduleService from '../services/ScheduleService';
+import { v4 as uuidv4 } from 'uuid';
+
+interface NewScheduleModalProps {
+  onClose: () => void;
+  onSave: () => void;
+}
+
+const NewScheduleModal: React.FC<NewScheduleModalProps> = ({ onClose, onSave }) => {
+  const [title, setTitle] = useState('');
+  const [startTime, setStartTime] = useState(new Date());
+  const [endTime, setEndTime] = useState(new Date());
+  const [location, setLocation] = useState('');
+  const [remarks, setRemarks] = useState('');
+
+  const handleSave = () => {
+    if (title.trim() === '') {
+      alert('请输入日程主题');
+      return;
+    }
+    const newSchedule: Schedule = {
+      id: uuidv4(),
+      title,
+      startTime,
+      endTime,
+      isDone: false,
+      location,
+      remarks,
+    };
+    ScheduleService.addSchedule(newSchedule);
+    onSave();
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal">
+        <h2>新建日程</h2>
+        <label>
+          主题:
+          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
+        </label>
+        <label>
+          开始时间:
+          <input
+            type="datetime-local"
+            value={startTime.toISOString().slice(0, 16)}
+            onChange={(e) => setStartTime(new Date(e.target.value))}
+          />
+        </label>
+        <label>
+          结束时间:
+          <input
+            type="datetime-local"
+            value={endTime.toISOString().slice(0, 16)}
+            onChange={(e) => setEndTime(new Date(e.target.value))}
+          />
+        </label>
+        <label>
+          地点:
+          <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
+        </label>
+        <label>
+          备注:
+          <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} />
+        </label>
+        <div className="modal-actions">
+          <button onClick={handleSave}>保存</button>
+          <button onClick={onClose}>取消</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default NewScheduleModal;
+```
+
+#### 9. `App.tsx`（主应用组件）
+
+```tsx
+// src/App.tsx
+
+import React, { useState } from 'react';
+import './styles/App.css';
+import DateHeader from './components/DateHeader';
+import ScheduleTimeline from './components/ScheduleTimeline';
+import ScheduleService from './services/ScheduleService';
+import EditScheduleModal from './components/EditScheduleModal';
+import NewScheduleModal from './components/NewScheduleModal';
+
+const App: React.FC = () => {
+  const [currentMonth, setCurrentMonth] = useState(new Date(2025, 0, 1));
+  const [selectedDate, setSelectedDate] = useState(new Date(2025, 0, 8));
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [editableSchedule, setEditableSchedule] = useState<null | any>(null); // Replace `any` with Schedule type
+
+  const weekDays = getWeekDays(currentMonth);
+
+  const handleMonthChange = (newMonth: Date) => {
+    setCurrentMonth(newMonth);
+    // Optionally, reset selectedDate to first day of newMonth
+    setSelectedDate(new Date(newMonth.getFullYear(), newMonth.getMonth(), 1));
+  };
+
+  const handleSelectDay = (day: Date) => {
+    setSelectedDate(day);
+  };
+
+  const handleEdit = (schedule: any) => { // Replace `any` with Schedule type
+    setEditableSchedule(schedule);
+    setIsEditModalOpen(true);
+  };
+
+  const handleToggleDone = (id: string) => {
+    // Trigger re-render by updating state
+    setSelectedDate(new Date(selectedDate));
+  };
+
+  const handleSaveEdit = () => {
+    setIsEditModalOpen(false);
+    setEditableSchedule(null);
+  };
+
+  const handleSaveNew = () => {
+    setIsNewModalOpen(false);
+  };
+
+  return (
+    <div className="App">
+      <header className="App-header">
+        <h1>卡片计划（Schedly）</h1>
+      </header>
+      <DateHeader
+        currentMonth={currentMonth}
+        onMonthChange={handleMonthChange}
+        weekDays={weekDays}
+        selectedDate={selectedDate}
+        onSelectDay={handleSelectDay}
+      />
+      <div className="selected-date-display">
+        {selectedDate.toLocaleDateString('zh-CN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+      </div>
+      <ScheduleTimeline
+        day={selectedDate}
+        schedules={ScheduleService.getSchedulesByDate(selectedDate)}
+        onEdit={handleEdit}
+        onToggleDone={handleToggleDone}
+      />
+      <button className="floating-button" onClick={() => setIsNewModalOpen(true)}>
+        +
+      </button>
+      {isEditModalOpen && editableSchedule && (
+        <EditScheduleModal
+          schedule={editableSchedule}
+          onClose={() => setIsEditModalOpen(false)}
+          onSave={handleSaveEdit}
+        />
+      )}
+      {isNewModalOpen && (
+        <NewScheduleModal
+          onClose={() => setIsNewModalOpen(false)}
+          onSave={handleSaveNew}
+        />
+      )}
+    </div>
+  );
+};
+
+export default App;
+
+// Helper function to get week days for the current month
+function getWeekDays(month: Date): Date[] {
+  const firstDayOfMonth = new Date(month.getFullYear(), month.getMonth(), 1);
+  const firstDayOfWeek = firstDayOfMonth.getDay() === 0 ? 6 : firstDayOfMonth.getDay() - 1; // Monday = 0
+  const startDate = new Date(firstDayOfMonth);
+  startDate.setDate(firstDayOfMonth.getDate() - firstDayOfWeek);
+  const weekDays = [];
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(startDate);
+    day.setDate(startDate.getDate() + i);
+    weekDays.push(day);
+  }
+  return weekDays;
+}
+```
+
+#### 10. `index.tsx`（应用入口）
+
+```tsx
+// src/index.tsx
+
+import React from 'react';
+import ReactDOM from 'react-dom';
+import './styles/App.css';
+import App from './App';
+
+ReactDOM.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+  document.getElementById('root')
+);
+```
+
+#### 11. `App.css`（样式文件）
+
+```css
+/* src/styles/App.css */
+
+body {
+  margin: 0;
+  font-family: 'Roboto', sans-serif;
+  background-color: #f5f5f5;
+}
+
+.App-header {
+  background-color: #ffffff;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.date-header {
+  padding: 20px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.month-navigation {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.month-navigation button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.week-days {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 10px;
+}
+
+.week-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.week-day.selected {
+  background-color: #ffcc80;
+  color: #ffffff;
+}
+
+.selected-date-display {
+  padding: 10px 20px;
+  background-color: #ffffff;
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.schedule-timeline {
+  display: flex;
+  padding: 20px;
+}
+
+.time-axis {
+  width: 60px;
+  position: relative;
+}
+
+.time-slot {
+  height: 60px;
+  border-bottom: 1px solid #e0e0e0;
+  position: relative;
+}
+
+.time-slot span {
+  position: absolute;
+  top: -8px;
+  left: -50px;
+  font-size: 12px;
+  color: #757575;
+}
+
+.cards-container {
+  flex: 1;
+  position: relative;
+}
+
+.schedule-card {
+  position: absolute;
+  left: 80px;
+  width: 300px;
+  padding: 10px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background-color: #ffffff;
+  transition: all 0.3s ease;
+}
+
+.schedule-card.ongoing {
+  background: linear-gradient(135deg, #ff9a8d, #ffc1b6);
+}
+
+.schedule-card.future {
+  background-color: #eef1f7;
+}
+
+.schedule-card.done {
+  background-color: #e0e0e0;
+  color: #9e9e9e;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.schedule-title {
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.schedule-title.completed {
+  text-decoration: line-through;
+}
+
+.card-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #424242;
+}
+
+.card-actions button:hover {
+  color: #ff5722;
+}
+
+.card-details {
+  margin-top: 10px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.detail-item span:first-child {
+  width: 50px;
+  font-weight: bold;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal {
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 12px;
+  width: 400px;
+  max-width: 90%;
+}
+
+.modal h2 {
+  margin-top: 0;
+}
+
+.modal label {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.modal input,
+.modal textarea {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+  border: 1px solid #bdbdbd;
+  border-radius: 4px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.modal-actions button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.modal-actions button:first-child {
+  background-color: #4caf50;
+  color: #ffffff;
+}
+
+.modal-actions button:last-child {
+  background-color: #f44336;
+  color: #ffffff;
+}
+
+.floating-button {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background-color: #ffcc80;
+  border: none;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  font-size: 36px;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.floating-button:hover {
+  background-color: #ffb74d;
+}
+```
+
+### 四、详细操作步骤
+
+#### 1. 环境准备
+
+确保您已经安装了以下工具：
+
+- **Node.js 和 npm**：前端开发需要Node.js环境，建议安装最新LTS版本。
+- **Create React App**：用于快速初始化React项目。
+- **TypeScript**：用于静态类型检查。
+
+#### 2. 初始化项目
+
+打开终端，执行以下命令创建一个新的React项目并添加TypeScript支持：
+
+```bash
+npx create-react-app schedly-web --template typescript
+cd schedly-web
+```
+
+#### 3. 安装依赖
+
+安装必要的依赖包：
+
+```bash
+npm install date-fns uuid
+```
+
+- `date-fns`：用于日期格式化和操作。
+- `uuid`：生成唯一ID。
+
+#### 4. 创建文件结构
+
+根据上述文件结构，创建以下目录和文件：
+
+- `src/components/DateHeader.tsx`
+- `src/components/TimeAxis.tsx`
+- `src/components/ScheduleCard.tsx`
+- `src/components/ScheduleTimeline.tsx`
+- `src/components/EditScheduleModal.tsx`
+- `src/components/NewScheduleModal.tsx`
+- `src/models/Schedule.ts`
+- `src/services/ScheduleService.ts`
+- `src/styles/App.css`（覆盖默认样式）
+- `src/App.tsx`（替换默认内容）
+- `src/index.tsx`（保持默认内容）
+
+#### 5. 添加代码
+
+按照上述示例代码，将内容复制到相应的文件中。
+
+##### 5.1 `Schedule.ts`
+
+```typescript
+// src/models/Schedule.ts
+
+export interface Schedule {
+  id: string;
+  title: string;
+  startTime: Date;
+  endTime: Date;
+  isDone: boolean;
+  location?: string;
+  icon?: string;
+  remarks?: string;
+}
+```
+
+##### 5.2 `ScheduleService.ts`
+
+```typescript
+// src/services/ScheduleService.ts
+
+import { Schedule } from '../models/Schedule';
+import { v4 as uuidv4 } from 'uuid';
+
+class ScheduleService {
+  private schedules: Schedule[] = [
+    {
+      id: '1',
+      title: '回复邮件',
+      startTime: new Date(2025, 0, 8, 5, 45),
+      endTime: new Date(2025, 0, 8, 6, 0),
+      isDone: false,
+      icon: '@',
+    },
+    {
+      id: '2',
+      title: '起床啦!',
+      startTime: new Date(2025, 0, 8, 7, 15),
+      endTime: new Date(2025, 0, 8, 7, 30),
+      isDone: false,
+      icon: '⏰',
+    },
+    {
+      id: '3',
+      title: '去跑步!',
+      startTime: new Date(2025, 0, 8, 11, 0),
+      endTime: new Date(2025, 0, 8, 12, 0),
+      isDone: false,
+      icon: '🏃‍♂️',
+    },
+    {
+      id: '4',
+      title: '看电影',
+      startTime: new Date(2025, 0, 8, 12, 15),
+      endTime: new Date(2025, 0, 8, 13, 45),
+      isDone: false,
+      icon: '🎬',
+    },
+    {
+      id: '5',
+      title: '起床啦!!',
+      startTime: new Date(2025, 0, 8, 19, 5),
+      endTime: new Date(2025, 0, 8, 19, 30),
+      isDone: false,
+      icon: '⏰',
+    },
+    {
+      id: '6',
+      title: '晚安！',
+      startTime: new Date(2025, 0, 8, 23, 0),
+      endTime: new Date(2025, 0, 8, 23, 15),
+      isDone: false,
+      icon: '🌙',
+    },
+  ];
+
+  getSchedulesByDate(date: Date): Schedule[] {
+    return this.schedules.filter(
+      (s) =>
+        s.startTime.getFullYear() === date.getFullYear() &&
+        s.startTime.getMonth() === date.getMonth() &&
+        s.startTime.getDate() === date.getDate()
+    );
+  }
+
+  addSchedule(schedule: Schedule) {
+    this.schedules.push(schedule);
+  }
+
+  updateSchedule(updated: Schedule) {
+    const index = this.schedules.findIndex((s) => s.id === updated.id);
+    if (index !== -1) {
+      this.schedules[index] = updated;
+    }
+  }
+
+  toggleDone(id: string) {
+    const schedule = this.schedules.find((s) => s.id === id);
+    if (schedule) {
+      schedule.isDone = !schedule.isDone;
+    }
+  }
+}
+
+export default new ScheduleService();
+```
+
+##### 5.3 `DateHeader.tsx`
+
+```tsx
+// src/components/DateHeader.tsx
+
+import React from 'react';
+import { format, addMonths, subMonths } from 'date-fns';
+import { zhCN } from 'date-fns/locale';
+
+interface DateHeaderProps {
+  currentMonth: Date;
+  onMonthChange: (newMonth: Date) => void;
+  weekDays: Date[];
+  selectedDate: Date;
+  onSelectDay: (day: Date) => void;
+}
+
+const DateHeader: React.FC<DateHeaderProps> = ({
+  currentMonth,
+  onMonthChange,
+  weekDays,
+  selectedDate,
+  onSelectDay,
+}) => {
+  return (
+    <div className="date-header">
+      <div className="month-navigation">
+        <button onClick={() => onMonthChange(subMonths(currentMonth, 1))}>&lt;</button>
+        <span>{format(currentMonth, 'yyyy年MM月', { locale: zhCN })}</span>
+        <button onClick={() => onMonthChange(addMonths(currentMonth, 1))}>&gt;</button>
+      </div>
+      <div className="week-days">
+        {weekDays.map((day) => {
+          const isSelected =
+            day.getFullYear() === selectedDate.getFullYear() &&
+            day.getMonth() === selectedDate.getMonth() &&
+            day.getDate() === selectedDate.getDate();
+          return (
+            <div
+              key={day.toDateString()}
+              className={`week-day ${isSelected ? 'selected' : ''}`}
+              onClick={() => onSelectDay(day)}
+            >
+              <span>{format(day, 'EEE', { locale: zhCN })}</span>
+              <span>{format(day, 'd')}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export default DateHeader;
+```
+
+##### 5.4 `TimeAxis.tsx`
+
+```tsx
+// src/components/TimeAxis.tsx
+
+import React from 'react';
+
+interface TimeAxisProps {
+  day: Date;
+  schedules: any[]; // Replace with Schedule type if needed
+}
+
+const TimeAxis: React.FC<TimeAxisProps> = ({ day, schedules }) => {
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+
+  return (
+    <div className="time-axis">
+      {hours.map((hour) => (
+        <div key={hour} className="time-slot">
+          <span>{`${hour}:00`}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default TimeAxis;
+```
+
+##### 5.5 `ScheduleCard.tsx`
+
+```tsx
+// src/components/ScheduleCard.tsx
+
+import React, { useState } from 'react';
+import { Schedule } from '../models/Schedule';
+import ScheduleService from '../services/ScheduleService';
+
+interface ScheduleCardProps {
+  schedule: Schedule;
+  onEdit: (schedule: Schedule) => void;
+  onToggleDone: (id: string) => void;
+}
+
+const ScheduleCard: React.FC<ScheduleCardProps> = ({ schedule, onEdit, onToggleDone }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const handleToggleDone = () => {
+    ScheduleService.toggleDone(schedule.id);
+    onToggleDone(schedule.id);
+  };
+
+  const handleExpand = () => {
+    setIsExpanded(!isExpanded);
+  };
+
+  const isOngoing =
+    !schedule.isDone &&
+    new Date() >= schedule.startTime &&
+    new Date() <= schedule.endTime;
+
+  const cardClass = schedule.isDone
+    ? 'schedule-card done'
+    : isOngoing
+    ? 'schedule-card ongoing'
+    : 'schedule-card future';
+
+  return (
+    <div className={cardClass}>
+      <div className="card-header">
+        <span
+          className={`schedule-title ${schedule.isDone ? 'completed' : ''}`}
+          onClick={handleExpand}
+        >
+          {schedule.title}
+        </span>
+        <div className="card-actions">
+          <button onClick={() => onEdit(schedule)}>编辑</button>
+          <button onClick={handleToggleDone}>
+            {schedule.isDone ? '未完成' : '完成'}
+          </button>
+        </div>
+      </div>
+      {!schedule.isDone || isExpanded ? (
+        <div className="card-details">
+          <div className="detail-item">
+            <span>时间:</span>
+            <span>
+              {schedule.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -{' '}
+              {schedule.endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+          {schedule.location && (
+            <div className="detail-item">
+              <span>地点:</span>
+              <span>{schedule.location}</span>
+            </div>
+          )}
+          {schedule.remarks && (
+            <div className="detail-item">
+              <span>备注:</span>
+              <span>{schedule.remarks}</span>
+            </div>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+export default ScheduleCard;
+```
+
+##### 5.6 `ScheduleTimeline.tsx`
+
+```tsx
+// src/components/ScheduleTimeline.tsx
+
+import React from 'react';
+import { Schedule } from '../models/Schedule';
+import ScheduleCard from './ScheduleCard';
+import TimeAxis from './TimeAxis';
+
+interface ScheduleTimelineProps {
+  day: Date;
+  schedules: Schedule[];
+  onEdit: (schedule: Schedule) => void;
+  onToggleDone: (id: string) => void;
+}
+
+const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({
+  day,
+  schedules,
+  onEdit,
+  onToggleDone,
+}) => {
+  // Sort schedules by start time
+  const sortedSchedules = [...schedules].sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+
+  return (
+    <div className="schedule-timeline">
+      <TimeAxis day={day} schedules={schedules} />
+      <div className="cards-container">
+        {sortedSchedules.map((schedule) => (
+          <ScheduleCard
+            key={schedule.id}
+            schedule={schedule}
+            onEdit={onEdit}
+            onToggleDone={onToggleDone}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default ScheduleTimeline;
+```
+
+##### 5.7 `EditScheduleModal.tsx`
+
+```tsx
+// src/components/EditScheduleModal.tsx
+
+import React, { useState } from 'react';
+import { Schedule } from '../models/Schedule';
+import ScheduleService from '../services/ScheduleService';
+
+interface EditScheduleModalProps {
+  schedule: Schedule;
+  onClose: () => void;
+  onSave: () => void;
+}
+
+const EditScheduleModal: React.FC<EditScheduleModalProps> = ({ schedule, onClose, onSave }) => {
+  const [title, setTitle] = useState(schedule.title);
+  const [startTime, setStartTime] = useState(schedule.startTime);
+  const [endTime, setEndTime] = useState(schedule.endTime);
+  const [isDone, setIsDone] = useState(schedule.isDone);
+  const [location, setLocation] = useState(schedule.location || '');
+  const [remarks, setRemarks] = useState(schedule.remarks || '');
+
+  const handleSave = () => {
+    const updatedSchedule: Schedule = {
+      ...schedule,
+      title,
+      startTime,
+      endTime,
+      isDone,
+      location,
+      remarks,
+    };
+    ScheduleService.updateSchedule(updatedSchedule);
+    onSave();
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal">
+        <h2>编辑日程</h2>
+        <label>
+          主题:
+          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
+        </label>
+        <label>
+          开始时间:
+          <input
+            type="datetime-local"
+            value={startTime.toISOString().slice(0, 16)}
+            onChange={(e) => setStartTime(new Date(e.target.value))}
+          />
+        </label>
+        <label>
+          结束时间:
+          <input
+            type="datetime-local"
+            value={endTime.toISOString().slice(0, 16)}
+            onChange={(e) => setEndTime(new Date(e.target.value))}
+          />
+        </label>
+        <label>
+          地点:
+          <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
+        </label>
+        <label>
+          备注:
+          <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} />
+        </label>
+        <label>
+          已完成:
+          <input
+            type="checkbox"
+            checked={isDone}
+            onChange={(e) => setIsDone(e.target.checked)}
+          />
+        </label>
+        <div className="modal-actions">
+          <button onClick={handleSave}>保存</button>
+          <button onClick={onClose}>取消</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default EditScheduleModal;
+```
+
+##### 5.8 `NewScheduleModal.tsx`
+
+```tsx
+// src/components/NewScheduleModal.tsx
+
+import React, { useState } from 'react';
+import { Schedule } from '../models/Schedule';
+import ScheduleService from '../services/ScheduleService';
+import { v4 as uuidv4 } from 'uuid';
+
+interface NewScheduleModalProps {
+  onClose: () => void;
+  onSave: () => void;
+}
+
+const NewScheduleModal: React.FC<NewScheduleModalProps> = ({ onClose, onSave }) => {
+  const [title, setTitle] = useState('');
+  const [startTime, setStartTime] = useState(new Date());
+  const [endTime, setEndTime] = useState(new Date());
+  const [location, setLocation] = useState('');
+  const [remarks, setRemarks] = useState('');
+
+  const handleSave = () => {
+    if (title.trim() === '') {
+      alert('请输入日程主题');
+      return;
+    }
+    const newSchedule: Schedule = {
+      id: uuidv4(),
+      title,
+      startTime,
+      endTime,
+      isDone: false,
+      location,
+      remarks,
+    };
+    ScheduleService.addSchedule(newSchedule);
+    onSave();
+    onClose();
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal">
+        <h2>新建日程</h2>
+        <label>
+          主题:
+          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
+        </label>
+        <label>
+          开始时间:
+          <input
+            type="datetime-local"
+            value={startTime.toISOString().slice(0, 16)}
+            onChange={(e) => setStartTime(new Date(e.target.value))}
+          />
+        </label>
+        <label>
+          结束时间:
+          <input
+            type="datetime-local"
+            value={endTime.toISOString().slice(0, 16)}
+            onChange={(e) => setEndTime(new Date(e.target.value))}
+          />
+        </label>
+        <label>
+          地点:
+          <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
+        </label>
+        <label>
+          备注:
+          <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} />
+        </label>
+        <div className="modal-actions">
+          <button onClick={handleSave}>保存</button>
+          <button onClick={onClose}>取消</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default NewScheduleModal;
+```
+
+##### 5.9 `App.tsx`
+
+```tsx
+// src/App.tsx
+
+import React, { useState } from 'react';
+import './styles/App.css';
+import DateHeader from './components/DateHeader';
+import ScheduleTimeline from './components/ScheduleTimeline';
+import ScheduleService from './services/ScheduleService';
+import EditScheduleModal from './components/EditScheduleModal';
+import NewScheduleModal from './components/NewScheduleModal';
+
+const App: React.FC = () => {
+  const [currentMonth, setCurrentMonth] = useState(new Date(2025, 0, 1));
+  const [selectedDate, setSelectedDate] = useState(new Date(2025, 0, 8));
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [editableSchedule, setEditableSchedule] = useState<null | any>(null); // Replace `any` with Schedule type
+
+  const weekDays = getWeekDays(currentMonth);
+
+  const handleMonthChange = (newMonth: Date) => {
+    setCurrentMonth(newMonth);
+    // Optionally, reset selectedDate to first day of newMonth
+    setSelectedDate(new Date(newMonth.getFullYear(), newMonth.getMonth(), 1));
+  };
+
+  const handleSelectDay = (day: Date) => {
+    setSelectedDate(day);
+  };
+
+  const handleEdit = (schedule: any) => { // Replace `any` with Schedule type
+    setEditableSchedule(schedule);
+    setIsEditModalOpen(true);
+  };
+
+  const handleToggleDone = (id: string) => {
+    // Trigger re-render by updating state
+    setSelectedDate(new Date(selectedDate));
+  };
+
+  const handleSaveEdit = () => {
+    setIsEditModalOpen(false);
+    setEditableSchedule(null);
+  };
+
+  const handleSaveNew = () => {
+    setIsNewModalOpen(false);
+  };
+
+  return (
+    <div className="App">
+      <header className="App-header">
+        <h1>卡片计划（Schedly）</h1>
+      </header>
+      <DateHeader
+        currentMonth={currentMonth}
+        onMonthChange={handleMonthChange}
+        weekDays={weekDays}
+        selectedDate={selectedDate}
+        onSelectDay={handleSelectDay}
+      />
+      <div className="selected-date-display">
+        {selectedDate.toLocaleDateString('zh-CN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+      </div>
+      <ScheduleTimeline
+        day={selectedDate}
+        schedules={ScheduleService.getSchedulesByDate(selectedDate)}
+        onEdit={handleEdit}
+        onToggleDone={handleToggleDone}
+      />
+      <button className="floating-button" onClick={() => setIsNewModalOpen(true)}>
+        +
+      </button>
+      {isEditModalOpen && editableSchedule && (
+        <EditScheduleModal
+          schedule={editableSchedule}
+          onClose={() => setIsEditModalOpen(false)}
+          onSave={handleSaveEdit}
+        />
+      )}
+      {isNewModalOpen && (
+        <NewScheduleModal
+          onClose={() => setIsNewModalOpen(false)}
+          onSave={handleSaveNew}
+        />
+      )}
+    </div>
+  );
+};
+
+export default App;
+
+// Helper function to get week days for the current month
+function getWeekDays(month: Date): Date[] {
+  const firstDayOfMonth = new Date(month.getFullYear(), month.getMonth(), 1);
+  const firstDayOfWeek = firstDayOfMonth.getDay() === 0 ? 6 : firstDayOfMonth.getDay() - 1; // Monday = 0
+  const startDate = new Date(firstDayOfMonth);
+  startDate.setDate(firstDayOfMonth.getDate() - firstDayOfWeek);
+  const weekDays = [];
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(startDate);
+    day.setDate(startDate.getDate() + i);
+    weekDays.push(day);
+  }
+  return weekDays;
+}
+```
+
+##### 5.10 `index.tsx`
+
+```tsx
+// src/index.tsx
+
+import React from 'react';
+import ReactDOM from 'react-dom';
+import './styles/App.css';
+import App from './App';
+
+ReactDOM.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+  document.getElementById('root')
+);
+```
+
+##### 5.11 `App.css`
+
+```css
+/* src/styles/App.css */
+
+body {
+  margin: 0;
+  font-family: 'Roboto', sans-serif;
+  background-color: #f5f5f5;
+}
+
+.App-header {
+  background-color: #ffffff;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.date-header {
+  padding: 20px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.month-navigation {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.month-navigation button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.week-days {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 10px;
+}
+
+.week-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.week-day.selected {
+  background-color: #ffcc80;
+  color: #ffffff;
+}
+
+.selected-date-display {
+  padding: 10px 20px;
+  background-color: #ffffff;
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.schedule-timeline {
+  display: flex;
+  padding: 20px;
+}
+
+.time-axis {
+  width: 60px;
+  position: relative;
+}
+
+.time-slot {
+  height: 60px;
+  border-bottom: 1px solid #e0e0e0;
+  position: relative;
+}
+
+.time-slot span {
+  position: absolute;
+  top: -8px;
+  left: -50px;
+  font-size: 12px;
+  color: #757575;
+}
+
+.cards-container {
+  flex: 1;
+  position: relative;
+}
+
+.schedule-card {
+  position: absolute;
+  left: 80px;
+  width: 300px;
+  padding: 10px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background-color: #ffffff;
+  transition: all 0.3s ease;
+}
+
+.schedule-card.ongoing {
+  background: linear-gradient(135deg, #ff9a8d, #ffc1b6);
+}
+
+.schedule-card.future {
+  background-color: #eef1f7;
+}
+
+.schedule-card.done {
+  background-color: #e0e0e0;
+  color: #9e9e9e;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.schedule-title {
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.schedule-title.completed {
+  text-decoration: line-through;
+}
+
+.card-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #424242;
+  margin-left: 5px;
+}
+
+.card-actions button:hover {
+  color: #ff5722;
+}
+
+.card-details {
+  margin-top: 10px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.detail-item span:first-child {
+  width: 50px;
+  font-weight: bold;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal {
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 12px;
+  width: 400px;
+  max-width: 90%;
+}
+
+.modal h2 {
+  margin-top: 0;
+}
+
+.modal label {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.modal input,
+.modal textarea {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+  border: 1px solid #bdbdbd;
+  border-radius: 4px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.modal-actions button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.modal-actions button:first-child {
+  background-color: #4caf50;
+  color: #ffffff;
+}
+
+.modal-actions button:last-child {
+  background-color: #f44336;
+  color: #ffffff;
+}
+
+.floating-button {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background-color: #ffcc80;
+  border: none;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  font-size: 36px;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.floating-button:hover {
+  background-color: #ffb74d;
+}
+```
+
+### 五、运行与测试
+
+1. **启动开发服务器**
+
+   在项目根目录下，运行：
+
+   ```bash
+   npm start
+   ```
+
+   这将启动开发服务器，默认在 `http://localhost:3000` 上运行。
+
+2. **查看网页版**
+
+   打开浏览器，访问 `http://localhost:3000`，您将看到“卡片计划（Schedly）”的网页版界面。
+
+3. **功能测试**
+
+   - **日期导航**：点击左右箭头切换月份，选择不同日期查看日程。
+   - **时间轴与卡片**：查看时间轴上的日程卡片，根据状态显示不同样式。
+   - **编辑日程**：点击卡片上的“编辑”按钮，修改日程信息。
+   - **完成日程**：点击“完成”按钮，标记日程为完成状态，查看卡片样式变化。
+   - **新增日程**：点击右下角“+”按钮，创建新日程。
+
+4. **样式调整**
+
+   根据需要，进一步优化样式，如颜色、字体、间距等，确保界面美观且符合设计预期。
+
+### 六、功能扩展建议
+
+1. **AI 集成**：
+   - 实现与后端 AI 服务的通信，通过 API 获取日程补全和个性化建议。
+   - 在创建和编辑日程时，自动补全时间、地点等信息。
+
+2. **计划/日程广场**：
+   - 实现共享模板浏览和一键导入功能。
+   - 集成点赞、收藏等社交功能。
+
+3. **用户画像管理**：
+   - 设计用户画像收集机制，自动记录用户行为数据。
+   - 提供用户隐私设置界面，允许用户管理自己的数据。
+
+4. **时间轴优化**：
+   - 实现动态调整时间轴，根据日程密度自动伸缩。
+   - 增加拖拽功能，允许用户通过拖拽调整日程时间。
+
+5. **移动端适配**：
+   - 确保网页版在移动设备上也有良好的显示和交互体验。
+
+### 七、总结
+
+通过上述设计方案和示例代码，您可以快速搭建“卡片计划（Schedly）”的网页版，实现与移动端相似的功能和用户体验。根据MVP的核心功能需求，确保日程的展示、编辑和完成状态管理都能顺利运行，同时为未来的功能扩展和AI集成打下坚实基础。
+
+**祝“卡片计划（Schedly）”网页版开发顺利，早日上线并获得用户喜爱！**
