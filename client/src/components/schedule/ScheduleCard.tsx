@@ -42,14 +42,28 @@ export function ScheduleCard({
     >
       <Card
         className={cn(
-          "w-full transition-colors duration-300",
-          isHovered && "shadow-lg ring-2 ring-orange-200",
-          isOngoing && "bg-gradient-to-r from-orange-100 to-orange-50",
+          "w-full transition-all duration-300",
+          "bg-white/80 backdrop-blur-md",
+          "border border-orange-100/50",
+          isHovered && "shadow-lg shadow-orange-100/50 ring-2 ring-orange-200/50",
+          isOngoing && "bg-gradient-to-r from-orange-100/80 to-orange-50/80",
           schedule.isDone && "opacity-75"
         )}
       >
-        <CardContent className="p-4">
-          <motion.div className="flex items-start justify-between">
+        <CardContent className="p-4 relative overflow-hidden">
+          {/* Background blur effects */}
+          <div 
+            className={cn(
+              "absolute inset-0 transition-opacity duration-300",
+              isHovered ? "opacity-100" : "opacity-0"
+            )}
+            style={{
+              background: "radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255,237,213,0.4) 0%, rgba(255,255,255,0) 60%)",
+              mixBlendMode: "overlay",
+            }}
+          />
+
+          <motion.div className="flex items-start justify-between relative">
             <div
               className="flex-1 cursor-pointer"
               onClick={() => setIsExpanded(!isExpanded)}
@@ -131,7 +145,7 @@ export function ScheduleCard({
                 variant="ghost"
                 size="icon"
                 onClick={() => onEdit(schedule)}
-                className="hover:bg-orange-100"
+                className="hover:bg-orange-100/50 backdrop-blur-sm"
               >
                 <motion.div
                   whileHover={{ rotate: 15, scale: 1.2 }}
@@ -145,7 +159,7 @@ export function ScheduleCard({
                 variant="ghost"
                 size="icon"
                 onClick={() => onDelete(schedule.id)}
-                className="hover:bg-red-100"
+                className="hover:bg-red-100/50 backdrop-blur-sm"
               >
                 <motion.div
                   whileHover={{ rotate: 15, scale: 1.2 }}
@@ -193,39 +207,44 @@ export function ScheduleCard({
                 }}
                 className="overflow-hidden"
               >
-                {schedule.location && (
-                  <motion.div
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    exit={{ x: -20, opacity: 0 }}
-                    transition={{ 
-                      delay: 0.1,
-                      type: "spring",
-                      stiffness: 300,
-                      damping: 25,
-                    }}
-                    className="mt-4 flex items-center gap-2 text-sm text-gray-600"
-                  >
-                    <MapPin className="h-4 w-4" />
-                    <span>{schedule.location}</span>
-                  </motion.div>
-                )}
-                {schedule.remarks && (
-                  <motion.p
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    exit={{ x: -20, opacity: 0 }}
-                    transition={{ 
-                      delay: 0.2,
-                      type: "spring",
-                      stiffness: 300,
-                      damping: 25,
-                    }}
-                    className="mt-2 text-sm text-gray-600"
-                  >
-                    {schedule.remarks}
-                  </motion.p>
-                )}
+                <div className="relative mt-4 pt-4 border-t border-orange-100/30">
+                  {/* 磨砂玻璃效果的装饰元素 */}
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-orange-200/20 via-orange-100/10 to-orange-200/20" />
+
+                  {schedule.location && (
+                    <motion.div
+                      initial={{ x: -20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      exit={{ x: -20, opacity: 0 }}
+                      transition={{ 
+                        delay: 0.1,
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 25,
+                      }}
+                      className="flex items-center gap-2 text-sm text-gray-600"
+                    >
+                      <MapPin className="h-4 w-4" />
+                      <span>{schedule.location}</span>
+                    </motion.div>
+                  )}
+                  {schedule.remarks && (
+                    <motion.p
+                      initial={{ x: -20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      exit={{ x: -20, opacity: 0 }}
+                      transition={{ 
+                        delay: 0.2,
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 25,
+                      }}
+                      className="mt-2 text-sm text-gray-600"
+                    >
+                      {schedule.remarks}
+                    </motion.p>
+                  )}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

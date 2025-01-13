@@ -72,44 +72,56 @@ export function ScheduleTimeline({
   return (
     <div 
       ref={scrollRef}
-      className="flex h-[calc(100vh-12rem)] rounded-lg overflow-hidden shadow-xl"
+      className="flex h-[calc(100vh-12rem)] rounded-lg overflow-hidden shadow-xl relative"
     >
+      {/* 背景装饰效果 */}
+      <div className="absolute inset-0 bg-gradient-to-br from-orange-50/30 via-white/20 to-orange-50/30 pointer-events-none" />
+      <div className="absolute inset-0 backdrop-blur-[2px] pointer-events-none" />
+
       <TimeAxis startHour={startHour} endHour={endHour} />
-      <div className="flex-1 relative bg-gradient-to-br from-orange-50/30 to-white/30 backdrop-blur-sm min-h-[1280px] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-orange-200 hover:scrollbar-thumb-orange-300">
-        <AnimatePresence mode="popLayout">
-          {sortedSchedules.map((schedule) => {
-            const topPosition = getMarginTop(schedule.startTime, startHour);
-            return (
-              <motion.div
-                key={schedule.id}
-                style={{
-                  position: 'absolute',
-                  top: topPosition,
-                  left: '1rem',
-                  right: '1rem',
-                  y,
-                }}
-                initial={{ opacity: 0, x: -20, scale: 0.9 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: 20, scale: 0.9 }}
-                transition={{ 
-                  type: "spring",
-                  stiffness: 500,
-                  damping: 30,
-                  mass: 1,
-                }}
-                layout="position"
-              >
-                <ScheduleCard
-                  schedule={schedule}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                  onToggleStatus={onToggleStatus}
-                />
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
+      <div className="flex-1 relative min-h-[1280px] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-orange-200 hover:scrollbar-thumb-orange-300">
+        {/* 磨砂玻璃背景 */}
+        <div className="absolute inset-0 bg-white/50 backdrop-blur-md" />
+
+        {/* 装饰性网格背景 */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,237,213,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,237,213,0.1)_1px,transparent_1px)] bg-[size:20px_20px]" />
+
+        <div className="relative">
+          <AnimatePresence mode="popLayout">
+            {sortedSchedules.map((schedule) => {
+              const topPosition = getMarginTop(schedule.startTime, startHour);
+              return (
+                <motion.div
+                  key={schedule.id}
+                  style={{
+                    position: 'absolute',
+                    top: topPosition,
+                    left: '1rem',
+                    right: '1rem',
+                    y,
+                  }}
+                  initial={{ opacity: 0, x: -20, scale: 0.9 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: 20, scale: 0.9 }}
+                  transition={{ 
+                    type: "spring",
+                    stiffness: 500,
+                    damping: 30,
+                    mass: 1,
+                  }}
+                  layout="position"
+                >
+                  <ScheduleCard
+                    schedule={schedule}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onToggleStatus={onToggleStatus}
+                  />
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );
