@@ -11,6 +11,28 @@ import { startOfWeek, addDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
+function NewScheduleButton({ onClick }: { onClick: () => void }) {
+  return (
+    <motion.div
+      initial={false}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{
+        type: "spring",
+        stiffness: 300,
+        damping: 25,
+      }}
+    >
+      <Button
+        className="fixed bottom-8 right-8 shadow-lg"
+        size="lg"
+        onClick={onClick}
+      >
+        <Plus className="mr-2 h-4 w-4" /> New Schedule
+      </Button>
+    </motion.div>
+  );
+}
+
 export default function SchedulePage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isNewScheduleOpen, setIsNewScheduleOpen] = useState(false);
@@ -137,18 +159,7 @@ export default function SchedulePage() {
             isLoading={isLoading}
           />
 
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Button
-              className="fixed bottom-8 right-8 shadow-lg"
-              size="lg"
-              onClick={() => setIsNewScheduleOpen(true)}
-            >
-              <Plus className="mr-2 h-4 w-4" /> New Schedule
-            </Button>
-          </motion.div>
+          <NewScheduleButton onClick={() => setIsNewScheduleOpen(true)} />
 
           <NewScheduleDialog
             schedule={editingSchedule}

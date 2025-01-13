@@ -47,8 +47,8 @@ export function ScheduleTimeline({
 
   if (isLoading) {
     return (
-      <div className="flex h-[calc(100vh-12rem)] overflow-auto">
-        <TimeAxis className="flex-shrink-0" />
+      <div className="flex h-[calc(100vh-12rem)]">
+        <TimeAxis />
         <div className="flex-1 p-4 space-y-4">
           {Array.from({ length: 5 }).map((_, index) => (
             <motion.div
@@ -70,10 +70,10 @@ export function ScheduleTimeline({
       ref={scrollRef}
       className="flex h-[calc(100vh-12rem)] overflow-auto scrollbar-thin scrollbar-thumb-orange-200 scrollbar-track-transparent"
     >
-      <TimeAxis className="flex-shrink-0" />
-      <div className="flex-1 relative">
+      <TimeAxis />
+      <div className="flex-1 relative bg-white/50 min-h-[1920px]">
         <AnimatePresence mode="popLayout">
-          {sortedSchedules.map((schedule, index) => {
+          {sortedSchedules.map((schedule) => {
             const topPosition = getMarginTop(schedule.startTime);
             return (
               <motion.div
@@ -81,8 +81,8 @@ export function ScheduleTimeline({
                 style={{
                   position: 'absolute',
                   top: topPosition,
-                  left: 16,
-                  right: 16,
+                  left: '1rem',
+                  right: '1rem',
                   y,
                 }}
                 initial={{ opacity: 0, x: -20, scale: 0.9 }}
@@ -93,7 +93,6 @@ export function ScheduleTimeline({
                   stiffness: 500,
                   damping: 30,
                   mass: 1,
-                  delay: index * 0.05,
                 }}
                 layout="position"
               >
