@@ -71,15 +71,18 @@ export function ScheduleTimeline({
       className="flex h-[calc(100vh-12rem)] overflow-auto scrollbar-thin scrollbar-thumb-orange-200 scrollbar-track-transparent"
     >
       <TimeAxis className="flex-shrink-0" />
-      <div className="flex-1 p-4 space-y-4">
+      <div className="flex-1 relative">
         <AnimatePresence mode="popLayout">
           {sortedSchedules.map((schedule, index) => {
-            const offset = getMarginTop(schedule.startTime);
+            const topPosition = getMarginTop(schedule.startTime);
             return (
               <motion.div
                 key={schedule.id}
                 style={{
-                  marginTop: index === 0 ? offset : undefined,
+                  position: 'absolute',
+                  top: topPosition,
+                  left: 16,
+                  right: 16,
                   y,
                 }}
                 initial={{ opacity: 0, x: -20, scale: 0.9 }}
@@ -110,6 +113,7 @@ export function ScheduleTimeline({
 }
 
 function getMarginTop(time: Date): number {
-  const minutes = time.getHours() * 60 + time.getMinutes();
-  return (minutes / 60) * 80; // 80px is the height of each hour slot
+  const hours = time.getHours();
+  const minutes = time.getMinutes();
+  return (hours * 80) + ((minutes / 60) * 80); // 80px per hour
 }
