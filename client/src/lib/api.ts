@@ -22,6 +22,23 @@ export async function getSchedules(date: Date): Promise<Schedule[]> {
   }));
 }
 
+export async function analyzeSchedule(description: string) {
+  const response = await fetch(`${API_BASE}/schedules/analyze`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({ description }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to analyze schedule");
+  }
+
+  return response.json();
+}
+
 export async function createSchedule(schedule: Omit<Schedule, "id" | "createdAt" | "updatedAt">) {
   const response = await fetch(`${API_BASE}/schedules`, {
     method: "POST",

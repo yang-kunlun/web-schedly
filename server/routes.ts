@@ -5,6 +5,7 @@ import { schedules } from "@db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { startOfDay, endOfDay } from "date-fns";
 import { log } from "./vite";
+import { analyzeSchedule } from "./services/ai";
 
 export function registerRoutes(app: Express): Server {
   // Get schedules for a specific date
@@ -27,6 +28,21 @@ export function registerRoutes(app: Express): Server {
       });
 
       res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Analyze schedule with AI
+  app.post("/api/schedules/analyze", async (req, res, next) => {
+    try {
+      const { description } = req.body;
+      if (!description) {
+        return res.status(400).json({ message: "Description is required" });
+      }
+
+      const suggestion = await analyzeSchedule(description);
+      res.json(suggestion);
     } catch (error) {
       next(error);
     }
