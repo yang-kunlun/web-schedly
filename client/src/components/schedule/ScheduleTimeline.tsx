@@ -4,7 +4,6 @@ import { ScheduleCard } from "./ScheduleCard";
 import { TimeAxis } from "./TimeAxis";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useScroll, useSpring } from "framer-motion";
 
 interface ScheduleTimelineProps {
   schedules: Schedule[];
@@ -34,12 +33,6 @@ export function ScheduleTimeline({
   endHour = 22,
 }: ScheduleTimelineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { scrollY } = useScroll({ container: scrollRef });
-  const y = useSpring(scrollY, {
-    stiffness: 100,
-    damping: 30,
-    restDelta: 0.001,
-  });
 
   const sortedSchedules = useMemo(
     () =>
@@ -97,19 +90,24 @@ export function ScheduleTimeline({
         {/* 装饰性网格背景 */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,237,213,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,237,213,0.1)_1px,transparent_1px)] bg-[size:20px_20px]" />
 
-        <div className="relative" style={{ height: `${timelineHeight}px` }}>
+        <div 
+          className="relative" 
+          style={{ height: `${timelineHeight}px` }}
+        >
           <AnimatePresence mode="popLayout">
             {sortedSchedules.map((schedule) => {
               const topPosition = getMarginTop(schedule.startTime, startHour);
+              const duration = getDurationInHours(schedule.startTime, schedule.endTime);
+
               return (
                 <motion.div
                   key={schedule.id}
                   style={{
                     position: 'absolute',
-                    top: topPosition,
+                    top: `${topPosition}px`,
                     left: '1rem',
                     right: '1rem',
-                    y,
+                    minHeight: `${Math.max(duration * 80, 80)}px`, // 最小高度为一个小时
                   }}
                   initial={{ opacity: 0, x: -20, scale: 0.9 }}
                   animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -120,7 +118,7 @@ export function ScheduleTimeline({
                     damping: 30,
                     mass: 1,
                   }}
-                  layout="position"
+                  layout
                 >
                   <ScheduleCard
                     schedule={schedule}
@@ -141,7 +139,12 @@ export function ScheduleTimeline({
 function getMarginTop(time: Date, startHour: number): number {
   const hours = time.getHours();
   const minutes = time.getMinutes();
-  const hourDiff = hours - startHour;
+  const hourDiff = Math.max(0, hours - startHour); // 确保不会出现负值
   const minuteOffset = (minutes / 60) * 80;
   return hourDiff * 80 + minuteOffset;
+}
+
+function getDurationInHours(startTime: Date, endTime: Date): number {
+  const diff = endTime.getTime() - startTime.getTime();
+  return Math.max(diff / (1000 * 60 * 60), 0.5); // 最小duration为30分钟
 }
