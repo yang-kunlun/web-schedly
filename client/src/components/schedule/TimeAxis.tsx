@@ -32,20 +32,43 @@ export function TimeAxis({ className, startHour = 6, endHour = 22 }: TimeAxisPro
             <div className="flex items-center h-20 relative">
               <div className="absolute inset-0 group-hover:bg-orange-50/30 transition-colors duration-200" />
               <div className="relative flex items-center w-full">
-                <span className="text-sm font-medium text-gray-600 px-3 group-hover:text-orange-600 transition-colors duration-200">
+                <motion.span 
+                  className="text-sm font-medium text-gray-600 px-3 group-hover:text-orange-600 transition-colors duration-200"
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                >
                   {format(new Date().setHours(hour, 0), "HH:mm")}
-                </span>
+                </motion.span>
                 <div className="flex-1">
-                  <div className="h-px bg-gradient-to-r from-orange-200/50 to-transparent group-hover:from-orange-300/50 transition-colors duration-200" />
+                  <motion.div 
+                    className="h-px bg-gradient-to-r from-orange-200/50 to-transparent"
+                    whileHover={{ scaleX: 1.1, originX: 0 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
                 </div>
               </div>
               {/* 每小时的30分钟刻度 */}
-              <div className="absolute left-0 top-10 w-full flex items-center opacity-50">
-                <span className="text-xs text-gray-400 px-3">30</span>
+              <motion.div 
+                className="absolute left-0 top-10 w-full flex items-center opacity-50"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.5 }}
+                transition={{ duration: 0.2 }}
+              >
+                <motion.span 
+                  className="text-xs text-gray-400 px-3"
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                >
+                  30
+                </motion.span>
                 <div className="flex-1">
-                  <div className="h-px bg-gradient-to-r from-orange-100/30 to-transparent" />
+                  <motion.div 
+                    className="h-px bg-gradient-to-r from-orange-100/30 to-transparent"
+                    whileHover={{ scaleX: 1.05, originX: 0 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
                 </div>
-              </div>
+              </motion.div>
             </div>
           </motion.div>
         ))}
