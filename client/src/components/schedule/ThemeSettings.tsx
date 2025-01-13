@@ -7,12 +7,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Settings, Palette, Moon, Sun, Monitor } from "lucide-react";
@@ -25,11 +19,11 @@ interface ThemePreset {
   appearance: "light" | "dark" | "system";
 }
 
-interface ThemePresets {
-  [key: string]: ThemePreset;
+interface PresetNames {
+  [key: string]: string;
 }
 
-const presets: ThemePresets = {
+const presets: Record<string, ThemePreset> = {
   sunrise: {
     primary: "hsl(24, 100%, 50%)",
     variant: "professional",
@@ -52,7 +46,7 @@ const presets: ThemePresets = {
   }
 };
 
-const presetNames = {
+const presetNames: PresetNames = {
   sunrise: "日出橙",
   ocean: "海洋蓝",
   forest: "森林绿",
@@ -65,45 +59,58 @@ export function ThemeSettings() {
   const [currentAppearance, setCurrentAppearance] = useState<"light" | "dark" | "system">("light");
 
   const handlePresetChange = async (preset: string) => {
-    setCurrentPreset(preset);
-    const response = await fetch("/api/theme", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(presets[preset]),
-    });
+    try {
+      setCurrentPreset(preset);
+      const response = await fetch("/api/theme", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(presets[preset]),
+      });
 
-    if (!response.ok) {
-      console.error("Failed to update theme");
+      if (!response.ok) {
+        throw new Error("Failed to update theme");
+      }
+
+      // 重新加载页面以应用新主题
+      window.location.reload();
+    } catch (error) {
+      console.error("Failed to update theme:", error);
     }
-
-    // 重新加载页面以应用新主题
-    window.location.reload();
   };
 
   const handleAppearanceChange = async (appearance: "light" | "dark" | "system") => {
-    setCurrentAppearance(appearance);
-    const response = await fetch("/api/theme/appearance", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ appearance }),
-    });
+    try {
+      setCurrentAppearance(appearance);
+      const response = await fetch("/api/theme/appearance", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ appearance }),
+      });
 
-    if (!response.ok) {
-      console.error("Failed to update appearance");
+      if (!response.ok) {
+        throw new Error("Failed to update appearance");
+      }
+
+      // 重新加载页面以应用新主题
+      window.location.reload();
+    } catch (error) {
+      console.error("Failed to update appearance:", error);
     }
-
-    // 重新加载页面以应用新主题
-    window.location.reload();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="w-9 px-0">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="w-9 px-0"
+          title="主题设置"
+        >
           <Settings className="h-4 w-4" />
         </Button>
       </DialogTrigger>
