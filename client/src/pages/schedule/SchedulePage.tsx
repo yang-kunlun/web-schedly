@@ -2,14 +2,17 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DateHeader } from "@/components/schedule/DateHeader";
 import { ScheduleTimeline } from "@/components/schedule/ScheduleTimeline";
+import { HeatmapView } from "@/components/schedule/HeatmapView";
 import { NewScheduleDialog } from "@/components/schedule/NewScheduleDialog";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Calendar, BarChart2 } from "lucide-react";
 import { Schedule } from "@/types/schedule";
 import { getSchedules, createSchedule, updateSchedule, deleteSchedule } from "@/lib/api";
 import { startOfWeek, addDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
+
+type ViewMode = "timeline" | "heatmap";
 
 function NewScheduleButton({ onClick }: { onClick: () => void }) {
   return (
@@ -37,6 +40,7 @@ export default function SchedulePage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isNewScheduleOpen, setIsNewScheduleOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<Schedule | undefined>();
+  const [viewMode, setViewMode] = useState<ViewMode>("timeline");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -124,13 +128,33 @@ export default function SchedulePage() {
       className="min-h-screen bg-gradient-to-br from-orange-50 to-white"
     >
       <header className="bg-white border-b px-6 py-4 shadow-sm">
-        <motion.h1 
-          initial={{ y: -20 }}
-          animate={{ y: 0 }}
-          className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent"
-        >
-          卡片计划 Schedly
-        </motion.h1>
+        <div className="flex items-center justify-between">
+          <motion.h1 
+            initial={{ y: -20 }}
+            animate={{ y: 0 }}
+            className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent"
+          >
+            卡片计划 Schedly
+          </motion.h1>
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === "timeline" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("timeline")}
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              时间线
+            </Button>
+            <Button
+              variant={viewMode === "heatmap" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("heatmap")}
+            >
+              <BarChart2 className="h-4 w-4 mr-2" />
+              热力图
+            </Button>
+          </div>
+        </div>
       </header>
 
       <DateHeader
@@ -142,22 +166,29 @@ export default function SchedulePage() {
 
       <AnimatePresence mode="wait">
         <motion.main 
-          key={currentDate.toISOString()}
+          key={`${viewMode}-${currentDate.toISOString()}`}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.2 }}
           className="container mx-auto py-6 px-4"
         >
-          <ScheduleTimeline
-            schedules={schedules}
-            onEdit={setEditingSchedule}
-            onDelete={deleteMutation.mutate}
-            onToggleStatus={(id, isDone) =>
-              updateMutation.mutate({ id, data: { isDone } })
-            }
-            isLoading={isLoading}
-          />
+          {viewMode === "timeline" ? (
+            <ScheduleTimeline
+              schedules={schedules}
+              onEdit={setEditingSchedule}
+              onDelete={deleteMutation.mutate}
+              onToggleStatus={(id, isDone) =>
+                updateMutation.mutate({ id, data: { isDone } })
+              }
+              isLoading={isLoading}
+            />
+          ) : (
+            <HeatmapView
+              schedules={schedules}
+              currentDate={currentDate}
+            />
+          )}
 
           <NewScheduleButton onClick={() => setIsNewScheduleOpen(true)} />
 
