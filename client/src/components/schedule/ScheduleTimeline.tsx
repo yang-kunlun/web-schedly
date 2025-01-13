@@ -8,7 +8,6 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 import { Clock } from "lucide-react";
 
-
 interface ScheduleTimelineProps {
   schedules: Schedule[];
   onEdit: (schedule: Schedule) => void;
@@ -73,7 +72,8 @@ export function ScheduleTimeline({
 
   // 当组件加载时自动滚动到当前时间
   useEffect(() => {
-    scrollToCurrentTime();
+    const timer = setTimeout(scrollToCurrentTime, 500); // 延迟滚动以确保组件完全渲染
+    return () => clearTimeout(timer);
   }, [scrollToCurrentTime]);
 
   if (isLoading) {
@@ -99,17 +99,10 @@ export function ScheduleTimeline({
   return (
     <div className={cn(
       "flex rounded-lg overflow-hidden shadow-xl",
-      "h-[calc(100vh-12rem)] sm:h-[calc(100vh-12rem)]",
+      "h-[calc(100vh-12rem)]",
       "transition-all duration-300 ease-in-out"
     )}>
-      <TimeAxis 
-        startHour={startHour} 
-        endHour={endHour}
-        className={cn(
-          isMobile ? "w-16" : "w-24",
-          "transition-all duration-300"
-        )}
-      />
+      <TimeAxis startHour={startHour} endHour={endHour} />
 
       {/* 滚动容器 */}
       <div 
@@ -140,7 +133,7 @@ export function ScheduleTimeline({
               // 计算日程持续时间（转换为小时）
               const durationMs = schedule.endTime.getTime() - schedule.startTime.getTime();
               const durationHours = durationMs / (1000 * 60 * 60);
-              const height = Math.max(durationHours * 80, 40); // 最小高度40px
+              const height = Math.max(durationHours * 80, 48); // 最小高度48px
 
               return (
                 <motion.div
@@ -148,9 +141,10 @@ export function ScheduleTimeline({
                   style={{
                     position: 'absolute',
                     top: `${topPosition}px`,
-                    left: isMobile ? '0.5rem' : '1rem',
-                    right: isMobile ? '0.5rem' : '1rem',
+                    left: 0,
+                    right: 0,
                     height: `${height}px`,
+                    padding: isMobile ? '0 0.5rem' : '0 1rem',
                   }}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}

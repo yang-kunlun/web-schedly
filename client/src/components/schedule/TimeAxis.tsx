@@ -31,11 +31,15 @@ export function TimeAxis({ className, startHour = 6, endHour = 22 }: TimeAxisPro
 
   // 计算当前时间指示器的位置
   const getCurrentTimePosition = () => {
-    const now = new Date();
+    const now = currentTime;
     const hour = now.getHours();
     const minutes = now.getMinutes();
     if (hour < startHour || hour > endHour) return null;
-    return ((hour - startHour) * 80) + ((minutes / 60) * 80);
+
+    // 计算相对于startHour的小时差
+    const hourDiff = hour - startHour;
+    // 加上分钟的比例
+    return (hourDiff * 80) + ((minutes / 60) * 80);
   };
 
   const currentTimePosition = getCurrentTimePosition();
@@ -43,7 +47,7 @@ export function TimeAxis({ className, startHour = 6, endHour = 22 }: TimeAxisPro
   return (
     <div 
       className={cn(
-        "w-24 flex-shrink-0 border-r border-orange-100/50 relative select-none",
+        "w-16 sm:w-24 flex-shrink-0 border-r border-orange-100/50 relative select-none",
         "bg-gradient-to-b from-white/95 via-white/90 to-white/95",
         "backdrop-blur-md shadow-lg",
         className
@@ -78,13 +82,13 @@ export function TimeAxis({ className, startHour = 6, endHour = 22 }: TimeAxisPro
                 />
                 <div className="relative flex items-center h-10">
                   <motion.div
-                    className="flex items-center gap-1 px-3"
+                    className="flex items-center gap-1 px-2 sm:px-3"
                     animate={{
                       scale: isHovered ? 1.05 : 1
                     }}
                   >
                     <span className={cn(
-                      "text-sm font-medium transition-colors duration-200",
+                      "text-xs sm:text-sm font-medium transition-colors duration-200",
                       isHovered ? "text-orange-600" : "text-gray-600"
                     )}>
                       {format(date, "HH:mm")}
@@ -104,7 +108,7 @@ export function TimeAxis({ className, startHour = 6, endHour = 22 }: TimeAxisPro
                 {/* 30分钟刻度 */}
                 <div className="absolute top-1/2 left-0 w-full flex items-center opacity-50">
                   <span className={cn(
-                    "text-xs px-3 transition-colors duration-200",
+                    "text-[10px] sm:text-xs px-2 sm:px-3 transition-colors duration-200",
                     isHovered ? "text-orange-500" : "text-gray-400"
                   )}>
                     30
@@ -129,7 +133,7 @@ export function TimeAxis({ className, startHour = 6, endHour = 22 }: TimeAxisPro
           {currentTimePosition !== null && (
             <motion.div
               className="absolute left-0 right-0 z-10 pointer-events-none"
-              style={{ top: currentTimePosition }}
+              style={{ top: `${currentTimePosition}px` }}
               initial={{ x: -50, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 50, opacity: 0 }}
@@ -137,7 +141,7 @@ export function TimeAxis({ className, startHour = 6, endHour = 22 }: TimeAxisPro
               <div className="relative flex items-center">
                 <div className="absolute -left-1 w-2 h-2 bg-orange-500 rounded-full shadow-lg" />
                 <div className="w-full h-px bg-orange-500/50" />
-                <div className="absolute left-3 -top-4 flex items-center gap-1 bg-orange-500 text-white text-xs px-2 py-1 rounded-full shadow-lg">
+                <div className="absolute left-3 -top-4 flex items-center gap-1 bg-orange-500 text-white text-[10px] sm:text-xs px-2 py-1 rounded-full shadow-lg">
                   <Clock className="w-3 h-3" />
                   <span>{format(currentTime, "HH:mm")}</span>
                 </div>
