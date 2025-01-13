@@ -5,7 +5,7 @@ import { schedules } from "@db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { startOfDay, endOfDay } from "date-fns";
 import { log } from "./vite";
-import { analyzeSchedule } from "./services/ai";
+import { analyzeSchedule, getProductivityAdvice } from "./services/ai";
 
 export function registerRoutes(app: Express): Server {
   // Get schedules for a specific date
@@ -28,6 +28,32 @@ export function registerRoutes(app: Express): Server {
       });
 
       res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Get productivity advice
+  app.get("/api/schedules/advice", async (req, res, next) => {
+    try {
+      const date = new Date(req.query.date as string);
+      if (isNaN(date.getTime())) {
+        return res.status(400).json({ message: "Invalid date format" });
+      }
+
+      const dayStart = startOfDay(date);
+      const dayEnd = endOfDay(date);
+
+      const schedulesList = await db.query.schedules.findMany({
+        where: and(
+          gte(schedules.startTime, dayStart),
+          lte(schedules.startTime, dayEnd)
+        ),
+        orderBy: schedules.startTime,
+      });
+
+      const advice = await getProductivityAdvice(schedulesList);
+      res.json(advice);
     } catch (error) {
       next(error);
     }

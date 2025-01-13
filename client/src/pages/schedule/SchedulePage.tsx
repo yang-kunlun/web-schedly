@@ -11,6 +11,7 @@ import { getSchedules, createSchedule, updateSchedule, deleteSchedule } from "@/
 import { startOfWeek, addDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { ProductivityAdvice } from "@/components/schedule/ProductivityAdvice";
 
 type ViewMode = "timeline" | "heatmap";
 
@@ -219,8 +220,9 @@ export default function SchedulePage() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.2 }}
-          className="container mx-auto py-6 px-4"
+          className="container mx-auto py-6 px-4 space-y-6"
         >
+          <ProductivityAdvice date={currentDate} />
           {viewMode === "timeline" ? (
             <ScheduleTimeline
               schedules={allSchedules}
