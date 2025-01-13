@@ -49,6 +49,10 @@ export function ScheduleTimeline({
     [schedules]
   );
 
+  // 计算时间轴的总高度
+  const totalHours = endHour - startHour + 1;
+  const timelineHeight = totalHours * 80; // 每小时80px高度
+
   if (isLoading) {
     return (
       <div className="flex h-[calc(100vh-12rem)] rounded-lg overflow-hidden shadow-xl">
@@ -71,22 +75,29 @@ export function ScheduleTimeline({
 
   return (
     <div 
-      ref={scrollRef}
       className="flex h-[calc(100vh-12rem)] rounded-lg overflow-hidden shadow-xl relative"
     >
       {/* 背景装饰效果 */}
       <div className="absolute inset-0 bg-gradient-to-br from-orange-50/30 via-white/20 to-orange-50/30 pointer-events-none" />
       <div className="absolute inset-0 backdrop-blur-[2px] pointer-events-none" />
 
-      <TimeAxis startHour={startHour} endHour={endHour} />
-      <div className="flex-1 relative min-h-[1280px] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-orange-200 hover:scrollbar-thumb-orange-300">
+      <TimeAxis startHour={startHour} endHour={endHour} className="h-full" />
+
+      <div 
+        ref={scrollRef}
+        className="flex-1 relative overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-orange-200 hover:scrollbar-thumb-orange-300"
+        style={{ 
+          height: `calc(100vh - 12rem)`,
+          maxHeight: `calc(100vh - 12rem)`,
+        }}
+      >
         {/* 磨砂玻璃背景 */}
         <div className="absolute inset-0 bg-white/50 backdrop-blur-md" />
 
         {/* 装饰性网格背景 */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,237,213,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,237,213,0.1)_1px,transparent_1px)] bg-[size:20px_20px]" />
 
-        <div className="relative">
+        <div className="relative" style={{ height: `${timelineHeight}px` }}>
           <AnimatePresence mode="popLayout">
             {sortedSchedules.map((schedule) => {
               const topPosition = getMarginTop(schedule.startTime, startHour);
@@ -130,5 +141,7 @@ export function ScheduleTimeline({
 function getMarginTop(time: Date, startHour: number): number {
   const hours = time.getHours();
   const minutes = time.getMinutes();
-  return ((hours - startHour) * 80) + ((minutes / 60) * 80); // 80px per hour
+  const hourDiff = hours - startHour;
+  const minuteOffset = (minutes / 60) * 80;
+  return hourDiff * 80 + minuteOffset;
 }
