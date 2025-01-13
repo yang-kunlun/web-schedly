@@ -1,9 +1,10 @@
-import { useEffect, useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { Schedule } from "@/types/schedule";
 import { ScheduleCard } from "./ScheduleCard";
 import { TimeAxis } from "./TimeAxis";
 import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useScroll, useSpring } from "framer-motion";
 
 interface ScheduleTimelineProps {
   schedules: Schedule[];
@@ -28,6 +29,14 @@ export function ScheduleTimeline({
   onToggleStatus,
   isLoading,
 }: ScheduleTimelineProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { scrollY } = useScroll({ container: scrollRef });
+  const y = useSpring(scrollY, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001,
+  });
+
   const sortedSchedules = useMemo(
     () =>
       [...schedules].sort(
@@ -39,7 +48,7 @@ export function ScheduleTimeline({
   if (isLoading) {
     return (
       <div className="flex h-[calc(100vh-12rem)] overflow-auto">
-        <TimeAxis />
+        <TimeAxis className="flex-shrink-0" />
         <div className="flex-1 p-4 space-y-4">
           {Array.from({ length: 5 }).map((_, index) => (
             <motion.div
@@ -57,30 +66,43 @@ export function ScheduleTimeline({
   }
 
   return (
-    <div className="flex h-[calc(100vh-12rem)] overflow-auto">
-      <TimeAxis />
+    <div 
+      ref={scrollRef}
+      className="flex h-[calc(100vh-12rem)] overflow-auto scrollbar-thin scrollbar-thumb-orange-200 scrollbar-track-transparent"
+    >
+      <TimeAxis className="flex-shrink-0" />
       <div className="flex-1 p-4 space-y-4">
         <AnimatePresence mode="popLayout">
-          {sortedSchedules.map((schedule) => (
-            <motion.div
-              key={schedule.id}
-              style={{
-                marginTop: `${getMarginTop(schedule.startTime)}px`,
-              }}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              layout
-            >
-              <ScheduleCard
-                schedule={schedule}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onToggleStatus={onToggleStatus}
-              />
-            </motion.div>
-          ))}
+          {sortedSchedules.map((schedule, index) => {
+            const offset = getMarginTop(schedule.startTime);
+            return (
+              <motion.div
+                key={schedule.id}
+                style={{
+                  marginTop: index === 0 ? offset : undefined,
+                  y,
+                }}
+                initial={{ opacity: 0, x: -20, scale: 0.9 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: 20, scale: 0.9 }}
+                transition={{ 
+                  type: "spring",
+                  stiffness: 500,
+                  damping: 30,
+                  mass: 1,
+                  delay: index * 0.05,
+                }}
+                layout="position"
+              >
+                <ScheduleCard
+                  schedule={schedule}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  onToggleStatus={onToggleStatus}
+                />
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
       </div>
     </div>
