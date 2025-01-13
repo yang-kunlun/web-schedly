@@ -37,6 +37,7 @@ export async function analyzeSchedule(description: string): Promise<ScheduleSugg
         ],
         temperature: 0.7,
         max_tokens: 500,
+        response_format: { type: "json_object" }
       }),
     });
 
@@ -50,6 +51,7 @@ export async function analyzeSchedule(description: string): Promise<ScheduleSugg
     try {
       suggestion = JSON.parse(data.choices[0].message.content);
     } catch (e) {
+      console.error("Failed to parse AI suggestion:", data.choices[0].message.content);
       throw new Error("Failed to parse AI response");
     }
 
@@ -66,7 +68,7 @@ export async function getProductivityAdvice(schedules: Schedule[]): Promise<Prod
   }
 
   try {
-    // 将日程数据转换为易于AI理解的格式
+    // Format schedule data for AI analysis
     const schedulesData = schedules.map(schedule => ({
       title: schedule.title,
       startTime: schedule.startTime.toISOString(),
@@ -84,10 +86,17 @@ export async function getProductivityAdvice(schedules: Schedule[]): Promise<Prod
         model: "deepseek-chat",
         messages: [
           { role: "system", content: PROMPTS.PRODUCTIVITY_ADVICE },
-          { role: "user", content: JSON.stringify(schedulesData) }
+          { 
+            role: "user", 
+            content: JSON.stringify({
+              schedules: schedulesData,
+              currentTime: new Date().toISOString()
+            })
+          }
         ],
         temperature: 0.7,
         max_tokens: 1000,
+        response_format: { type: "json_object" }
       }),
     });
 
@@ -101,7 +110,13 @@ export async function getProductivityAdvice(schedules: Schedule[]): Promise<Prod
     try {
       advice = JSON.parse(data.choices[0].message.content);
     } catch (e) {
+      console.error("Failed to parse AI advice:", data.choices[0].message.content);
       throw new Error("Failed to parse AI response");
+    }
+
+    // Validate the response structure
+    if (!advice.summary || !advice.timeBalance || !advice.productivity || !advice.health || typeof advice.score !== 'number') {
+      throw new Error("Invalid advice format received from AI");
     }
 
     return advice;
