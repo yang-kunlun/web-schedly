@@ -68,6 +68,7 @@ export function ScheduleCard({
                     initial={false}
                     animate={{
                       rotate: schedule.isDone ? 360 : 0,
+                      scale: schedule.isDone ? 1.1 : 1,
                     }}
                     transition={{
                       type: "spring",
@@ -85,7 +86,9 @@ export function ScheduleCard({
                 <motion.h3
                   animate={{
                     opacity: schedule.isDone ? 0.5 : 1,
+                    scale: schedule.isDone ? 0.98 : 1,
                   }}
+                  transition={{ duration: 0.2 }}
                   className={cn(
                     "text-lg font-semibold",
                     schedule.isDone && "line-through"
@@ -97,7 +100,10 @@ export function ScheduleCard({
               <div className="mt-2 flex items-center gap-2 text-sm text-gray-500">
                 <motion.div
                   initial={{ rotate: 0 }}
-                  animate={{ rotate: isExpanded ? 360 : 0 }}
+                  animate={{ 
+                    rotate: isExpanded ? 360 : 0,
+                    scale: isExpanded ? 1.1 : 1,
+                  }}
                   transition={{ duration: 0.3 }}
                 >
                   <Clock className="h-4 w-4" />
@@ -114,6 +120,7 @@ export function ScheduleCard({
               animate={{ 
                 opacity: isHovered ? 1 : 0,
                 x: isHovered ? 0 : 20,
+                scale: isHovered ? 1 : 0.8,
               }}
               transition={{
                 duration: 0.2,
@@ -127,7 +134,8 @@ export function ScheduleCard({
                 className="hover:bg-orange-100"
               >
                 <motion.div
-                  whileHover={{ rotate: 15 }}
+                  whileHover={{ rotate: 15, scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
                   transition={{ duration: 0.2 }}
                 >
                   <Edit className="h-4 w-4" />
@@ -140,7 +148,8 @@ export function ScheduleCard({
                 className="hover:bg-red-100"
               >
                 <motion.div
-                  whileHover={{ rotate: 15 }}
+                  whileHover={{ rotate: 15, scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
                   transition={{ duration: 0.2 }}
                 >
                   <Trash className="h-4 w-4" />
@@ -149,7 +158,7 @@ export function ScheduleCard({
             </motion.div>
           </motion.div>
 
-          <AnimatePresence initial={false}>
+          <AnimatePresence mode="wait">
             {isExpanded && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
@@ -189,7 +198,12 @@ export function ScheduleCard({
                     initial={{ x: -20, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     exit={{ x: -20, opacity: 0 }}
-                    transition={{ delay: 0.1 }}
+                    transition={{ 
+                      delay: 0.1,
+                      type: "spring",
+                      stiffness: 300,
+                      damping: 25,
+                    }}
                     className="mt-4 flex items-center gap-2 text-sm text-gray-600"
                   >
                     <MapPin className="h-4 w-4" />
@@ -201,7 +215,12 @@ export function ScheduleCard({
                     initial={{ x: -20, opacity: 0 }}
                     animate={{ x: 0, opacity: 1 }}
                     exit={{ x: -20, opacity: 0 }}
-                    transition={{ delay: 0.2 }}
+                    transition={{ 
+                      delay: 0.2,
+                      type: "spring",
+                      stiffness: 300,
+                      damping: 25,
+                    }}
                     className="mt-2 text-sm text-gray-600"
                   >
                     {schedule.remarks}
