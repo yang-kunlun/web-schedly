@@ -51,9 +51,9 @@ export function ScheduleTimeline({
 
   if (isLoading) {
     return (
-      <div className="flex h-[calc(100vh-12rem)]">
+      <div className="flex h-[calc(100vh-12rem)] rounded-lg overflow-hidden shadow-xl">
         <TimeAxis startHour={startHour} endHour={endHour} />
-        <div className="flex-1 p-4 space-y-4">
+        <div className="flex-1 p-4 space-y-4 bg-gradient-to-br from-orange-50/50 to-white/50 backdrop-blur-sm">
           {Array.from({ length: 5 }).map((_, index) => (
             <motion.div
               key={index}
@@ -72,10 +72,10 @@ export function ScheduleTimeline({
   return (
     <div 
       ref={scrollRef}
-      className="flex h-[calc(100vh-12rem)] overflow-auto scrollbar-thin scrollbar-thumb-orange-200 scrollbar-track-transparent"
+      className="flex h-[calc(100vh-12rem)] rounded-lg overflow-hidden shadow-xl"
     >
       <TimeAxis startHour={startHour} endHour={endHour} />
-      <div className="flex-1 relative bg-white/50 min-h-[1280px]">
+      <div className="flex-1 relative bg-gradient-to-br from-orange-50/30 to-white/30 backdrop-blur-sm min-h-[1280px] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-orange-200 hover:scrollbar-thumb-orange-300">
         <AnimatePresence mode="popLayout">
           {sortedSchedules.map((schedule) => {
             const topPosition = getMarginTop(schedule.startTime, startHour);
