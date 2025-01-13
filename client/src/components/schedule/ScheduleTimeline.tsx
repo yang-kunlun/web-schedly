@@ -49,7 +49,7 @@ export function ScheduleTimeline({
     [schedules]
   );
 
-  // 计算时间轴的总高度
+  // Calculate timeline height
   const totalHours = endHour - startHour + 1;
   const timelineHeight = totalHours * 80; // 每小时80px高度
 
