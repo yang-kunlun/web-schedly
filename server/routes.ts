@@ -7,6 +7,8 @@ import { startOfDay, endOfDay } from "date-fns";
 import { log } from "./vite";
 import { analyzeSchedule, getProductivityAdvice } from "./services/ai";
 import { detectScheduleConflicts } from "./services/schedule-conflict";
+import fs from "fs/promises";
+import path from "path";
 
 export function registerRoutes(app: Express): Server {
   // Get schedules for a specific date
@@ -205,6 +207,45 @@ export function registerRoutes(app: Express): Server {
 
       await db.delete(schedules).where(eq(schedules.id, parseInt(id)));
       res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Theme related routes
+  app.post("/api/theme", async (req, res, next) => {
+    try {
+      const { primary, variant, appearance } = req.body;
+      const themeConfigPath = path.resolve(process.cwd(), "theme.json");
+
+      const currentTheme = JSON.parse(await fs.readFile(themeConfigPath, "utf-8"));
+      const updatedTheme = {
+        ...currentTheme,
+        primary,
+        variant,
+        appearance
+      };
+
+      await fs.writeFile(themeConfigPath, JSON.stringify(updatedTheme, null, 2));
+      res.status(200).json({ message: "Theme updated successfully" });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/theme/appearance", async (req, res, next) => {
+    try {
+      const { appearance } = req.body;
+      const themeConfigPath = path.resolve(process.cwd(), "theme.json");
+
+      const currentTheme = JSON.parse(await fs.readFile(themeConfigPath, "utf-8"));
+      const updatedTheme = {
+        ...currentTheme,
+        appearance
+      };
+
+      await fs.writeFile(themeConfigPath, JSON.stringify(updatedTheme, null, 2));
+      res.status(200).json({ message: "Theme appearance updated successfully" });
     } catch (error) {
       next(error);
     }

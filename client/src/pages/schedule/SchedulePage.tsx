@@ -12,6 +12,7 @@ import { startOfWeek, addDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { ProductivityAdvice } from "@/components/schedule/ProductivityAdvice";
+import { ThemeSettings } from "@/components/schedule/ThemeSettings";
 
 type ViewMode = "timeline" | "heatmap";
 
@@ -185,7 +186,8 @@ export default function SchedulePage() {
           >
             卡片计划 Schedly
           </motion.h1>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <ThemeSettings />
             <Button
               variant={viewMode === "timeline" ? "default" : "outline"}
               size="sm"

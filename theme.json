@@ -2,5 +2,27 @@
   "variant": "professional",
   "primary": "hsl(24, 100%, 50%)",
   "appearance": "light",
-  "radius": 0.75
+  "radius": 0.75,
+  "presets": {
+    "sunrise": {
+      "primary": "hsl(24, 100%, 50%)",
+      "variant": "professional",
+      "appearance": "light"
+    },
+    "ocean": {
+      "primary": "hsl(200, 100%, 50%)",
+      "variant": "tint",
+      "appearance": "light"
+    },
+    "forest": {
+      "primary": "hsl(150, 100%, 40%)",
+      "variant": "professional",
+      "appearance": "light"
+    },
+    "midnight": {
+      "primary": "hsl(250, 100%, 60%)",
+      "variant": "vibrant",
+      "appearance": "dark"
+    }
+  }
 }
