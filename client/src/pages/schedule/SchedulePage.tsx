@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DateHeader } from "@/components/schedule/DateHeader";
 import { ScheduleTimeline } from "@/components/schedule/ScheduleTimeline";
@@ -41,6 +41,8 @@ export default function SchedulePage() {
   const [isNewScheduleOpen, setIsNewScheduleOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<Schedule | undefined>();
   const [viewMode, setViewMode] = useState<ViewMode>("timeline");
+  const [startHour, setStartHour] = useState(6);
+  const [endHour, setEndHour] = useState(22);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -52,6 +54,52 @@ export default function SchedulePage() {
     queryKey: ["/api/schedules", currentDate.toISOString()],
     queryFn: () => getSchedules(currentDate),
   });
+
+  // 生成默认的起床和睡觉日程
+  const defaultSchedules = useMemo(() => {
+    const wakeUpTime = new Date(currentDate);
+    wakeUpTime.setHours(startHour, 0, 0, 0);
+
+    const sleepTime = new Date(currentDate);
+    sleepTime.setHours(endHour, 0, 0, 0);
+
+    const defaultItems: Schedule[] = [
+      {
+        id: -1,
+        title: "起床了",
+        startTime: wakeUpTime,
+        endTime: new Date(wakeUpTime.getTime() + 30 * 60000), // 30分钟后
+        isDone: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        icon: "sun",
+      },
+      {
+        id: -2,
+        title: "睡觉时间",
+        startTime: sleepTime,
+        endTime: new Date(sleepTime.getTime() + 30 * 60000),
+        isDone: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        icon: "moon",
+      },
+    ];
+
+    // 只有当用户没有在这个时间段内的日程时，才显示默认日程
+    return defaultItems.filter(defaultItem => 
+      !schedules.some(schedule => 
+        Math.abs(schedule.startTime.getTime() - defaultItem.startTime.getTime()) < 30 * 60000
+      )
+    );
+  }, [schedules, currentDate, startHour, endHour]);
+
+  const allSchedules = useMemo(() => 
+    [...schedules, ...defaultSchedules].sort((a, b) => 
+      a.startTime.getTime() - b.startTime.getTime()
+    ), 
+    [schedules, defaultSchedules]
+  );
 
   const createMutation = useMutation({
     mutationFn: createSchedule,
@@ -175,13 +223,19 @@ export default function SchedulePage() {
         >
           {viewMode === "timeline" ? (
             <ScheduleTimeline
-              schedules={schedules}
-              onEdit={setEditingSchedule}
-              onDelete={deleteMutation.mutate}
-              onToggleStatus={(id, isDone) =>
-                updateMutation.mutate({ id, data: { isDone } })
-              }
+              schedules={allSchedules}
+              onEdit={schedule => {
+                if (schedule.id > 0) setEditingSchedule(schedule);
+              }}
+              onDelete={id => {
+                if (id > 0) deleteMutation.mutate(id);
+              }}
+              onToggleStatus={(id, isDone) => {
+                if (id > 0) updateMutation.mutate({ id, data: { isDone } });
+              }}
               isLoading={isLoading}
+              startHour={startHour}
+              endHour={endHour}
             />
           ) : (
             <HeatmapView

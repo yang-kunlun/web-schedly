@@ -12,6 +12,8 @@ interface ScheduleTimelineProps {
   onDelete: (id: number) => void;
   onToggleStatus: (id: number, isDone: boolean) => void;
   isLoading?: boolean;
+  startHour?: number;
+  endHour?: number;
 }
 
 function ScheduleCardSkeleton() {
@@ -28,6 +30,8 @@ export function ScheduleTimeline({
   onDelete,
   onToggleStatus,
   isLoading,
+  startHour = 6,
+  endHour = 22,
 }: ScheduleTimelineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll({ container: scrollRef });
@@ -48,7 +52,7 @@ export function ScheduleTimeline({
   if (isLoading) {
     return (
       <div className="flex h-[calc(100vh-12rem)]">
-        <TimeAxis />
+        <TimeAxis startHour={startHour} endHour={endHour} />
         <div className="flex-1 p-4 space-y-4">
           {Array.from({ length: 5 }).map((_, index) => (
             <motion.div
@@ -70,11 +74,11 @@ export function ScheduleTimeline({
       ref={scrollRef}
       className="flex h-[calc(100vh-12rem)] overflow-auto scrollbar-thin scrollbar-thumb-orange-200 scrollbar-track-transparent"
     >
-      <TimeAxis />
-      <div className="flex-1 relative bg-white/50 min-h-[1920px]">
+      <TimeAxis startHour={startHour} endHour={endHour} />
+      <div className="flex-1 relative bg-white/50 min-h-[1280px]">
         <AnimatePresence mode="popLayout">
           {sortedSchedules.map((schedule) => {
-            const topPosition = getMarginTop(schedule.startTime);
+            const topPosition = getMarginTop(schedule.startTime, startHour);
             return (
               <motion.div
                 key={schedule.id}
@@ -111,8 +115,8 @@ export function ScheduleTimeline({
   );
 }
 
-function getMarginTop(time: Date): number {
+function getMarginTop(time: Date, startHour: number): number {
   const hours = time.getHours();
   const minutes = time.getMinutes();
-  return (hours * 80) + ((minutes / 60) * 80); // 80px per hour
+  return ((hours - startHour) * 80) + ((minutes / 60) * 80); // 80px per hour
 }
