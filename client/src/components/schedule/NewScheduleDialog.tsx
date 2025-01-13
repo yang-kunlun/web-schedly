@@ -1,16 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Schedule } from "@/types/schedule";
-import { analyzeSchedule } from "@/lib/api";
+import { analyzeSchedule, checkScheduleConflicts } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Bot, Clock, MapPin, MessageSquare, Loader2 } from "lucide-react";
+import { 
+  Bot, 
+  Clock, 
+  MapPin, 
+  MessageSquare, 
+  Loader2,
+  AlertTriangle,
+  AlertCircle,
+  AlertOctagon
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface NewScheduleDialogProps {
   schedule?: Schedule;
@@ -36,7 +47,36 @@ export function NewScheduleDialog({
   const [remarks, setRemarks] = useState(schedule?.remarks || "");
   const [description, setDescription] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isCheckingConflicts, setIsCheckingConflicts] = useState(false);
+  const [conflicts, setConflicts] = useState<any>(null);
   const { toast } = useToast();
+
+  // 使用防抖来避免频繁的冲突检查
+  const debouncedStartTime = useDebounce(startTime, 500);
+  const debouncedEndTime = useDebounce(endTime, 500);
+
+  useEffect(() => {
+    if (debouncedStartTime && debouncedEndTime) {
+      checkConflicts();
+    }
+  }, [debouncedStartTime, debouncedEndTime]);
+
+  const checkConflicts = async () => {
+    try {
+      setIsCheckingConflicts(true);
+      const result = await checkScheduleConflicts({
+        id: schedule?.id,
+        title,
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
+      });
+      setConflicts(result);
+    } catch (error) {
+      console.error("Failed to check conflicts:", error);
+    } finally {
+      setIsCheckingConflicts(false);
+    }
+  };
 
   const handleAIAnalyze = async () => {
     try {
@@ -51,6 +91,8 @@ export function NewScheduleDialog({
         title: "AI分析完成",
         description: "已自动填充日程信息，请检查并按需修改。",
       });
+      // 分析完成后检查冲突
+      await checkConflicts();
     } catch (error) {
       toast({
         title: "AI分析失败",
@@ -62,8 +104,63 @@ export function NewScheduleDialog({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const renderConflictAlert = () => {
+    if (!conflicts?.hasConflict) return null;
+
+    const severityConfig = {
+      low: {
+        icon: AlertTriangle,
+        color: "text-yellow-500",
+        bgColor: "bg-yellow-50",
+        borderColor: "border-yellow-200"
+      },
+      medium: {
+        icon: AlertCircle,
+        color: "text-orange-500",
+        bgColor: "bg-orange-50",
+        borderColor: "border-orange-200"
+      },
+      high: {
+        icon: AlertOctagon,
+        color: "text-red-500",
+        bgColor: "bg-red-50",
+        borderColor: "border-red-200"
+      }
+    };
+
+    const config = severityConfig[conflicts.severity];
+    const Icon = config.icon;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+      >
+        <Alert className={`${config.bgColor} border ${config.borderColor} mb-4`}>
+          <Icon className={`h-4 w-4 ${config.color}`} />
+          <AlertTitle className={config.color}>时间冲突警告</AlertTitle>
+          <AlertDescription className="mt-2 text-sm">
+            {conflicts.suggestion.split('\n').map((line: string, i: number) => (
+              <p key={i} className="mb-1">{line}</p>
+            ))}
+          </AlertDescription>
+        </Alert>
+      </motion.div>
+    );
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 如果有高严重度的冲突，显示确认对话框
+    if (conflicts?.hasConflict && conflicts.severity === "high") {
+      const confirmed = window.confirm(
+        "检测到严重的时间冲突，确定要继续保存吗？"
+      );
+      if (!confirmed) return;
+    }
+
     onSave({
       title,
       startTime: new Date(startTime),
@@ -116,6 +213,10 @@ export function NewScheduleDialog({
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              <AnimatePresence>
+                {conflicts && renderConflictAlert()}
+              </AnimatePresence>
+
               <motion.div
                 initial={false}
                 animate={{ 

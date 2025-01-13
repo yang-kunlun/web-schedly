@@ -39,6 +39,23 @@ export async function analyzeSchedule(description: string) {
   return response.json();
 }
 
+export async function checkScheduleConflicts(schedule: Partial<Schedule>) {
+  const response = await fetch(`${API_BASE}/schedules/check-conflicts`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({ schedule }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to check schedule conflicts");
+  }
+
+  return response.json();
+}
+
 export async function createSchedule(schedule: Omit<Schedule, "id" | "createdAt" | "updatedAt">) {
   const response = await fetch(`${API_BASE}/schedules`, {
     method: "POST",

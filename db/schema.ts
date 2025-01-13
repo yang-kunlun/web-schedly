@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, serial } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, serial, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
 export const schedules = pgTable("schedules", {
@@ -10,6 +10,8 @@ export const schedules = pgTable("schedules", {
   remarks: text("remarks"),
   isDone: boolean("is_done").default(false).notNull(),
   icon: text("icon"),
+  conflictInfo: jsonb("conflict_info"), // 存储冲突信息的JSON字段
+  priority: text("priority").default("normal").notNull(), // 日程优先级：low, normal, high
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull()
 });
