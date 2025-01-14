@@ -1,4 +1,4 @@
-import { Schedule } from "@db/schema";
+import { schedules, type InsertSchedule, type SelectSchedule } from "@db/schema";
 
 export interface ConflictInfo {
   hasConflict: boolean;
@@ -14,8 +14,8 @@ export interface ConflictInfo {
 }
 
 export function detectScheduleConflicts(
-  schedule: Partial<Schedule>,
-  existingSchedules: Schedule[]
+  schedule: Partial<SelectSchedule>,
+  existingSchedules: SelectSchedule[]
 ): ConflictInfo {
   const conflicts = existingSchedules.filter(existing => {
     // 跳过当前正在编辑的日程
@@ -76,7 +76,7 @@ export function detectScheduleConflicts(
   conflictingSchedules.forEach(conflict => {
     suggestion += `- 与"${conflict.title}"重叠${conflict.overlapDuration}分钟\n`;
   });
-  
+
   if (severity === "high") {
     suggestion += "\n建议：请考虑重新安排时间，当前冲突较严重。";
   } else if (severity === "medium") {

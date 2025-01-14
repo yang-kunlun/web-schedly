@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { ProductivityAdvice } from "@/components/schedule/ProductivityAdvice";
 import { ThemeSettings } from "@/components/schedule/ThemeSettings";
+import { ProductivityDashboard } from "@/components/schedule/ProductivityDashboard";
 
 type ViewMode = "timeline" | "heatmap";
 
@@ -57,7 +58,6 @@ export default function SchedulePage() {
     queryFn: () => getSchedules(currentDate),
   });
 
-  // 生成默认的起床和睡觉日程
   const defaultSchedules = useMemo(() => {
     const wakeUpTime = new Date(currentDate);
     wakeUpTime.setHours(startHour, 0, 0, 0);
@@ -70,7 +70,7 @@ export default function SchedulePage() {
         id: -1,
         title: "起床了",
         startTime: wakeUpTime,
-        endTime: new Date(wakeUpTime.getTime() + 30 * 60000), // 30分钟后
+        endTime: new Date(wakeUpTime.getTime() + 30 * 60000),
         isDone: false,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -88,18 +88,17 @@ export default function SchedulePage() {
       },
     ];
 
-    // 只有当用户没有在这个时间段内的日程时，才显示默认日程
-    return defaultItems.filter(defaultItem => 
-      !schedules.some(schedule => 
+    return defaultItems.filter(defaultItem =>
+      !schedules.some(schedule =>
         Math.abs(schedule.startTime.getTime() - defaultItem.startTime.getTime()) < 30 * 60000
       )
     );
   }, [schedules, currentDate, startHour, endHour]);
 
-  const allSchedules = useMemo(() => 
-    [...schedules, ...defaultSchedules].sort((a, b) => 
+  const allSchedules = useMemo(() =>
+    [...schedules, ...defaultSchedules].sort((a, b) =>
       a.startTime.getTime() - b.startTime.getTime()
-    ), 
+    ),
     [schedules, defaultSchedules]
   );
 
@@ -172,14 +171,14 @@ export default function SchedulePage() {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="min-h-screen bg-gradient-to-br from-orange-50 to-white"
     >
       <header className="bg-white border-b px-6 py-4 shadow-sm">
         <div className="flex items-center justify-between">
-          <motion.h1 
+          <motion.h1
             initial={{ y: -20 }}
             animate={{ y: 0 }}
             className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent"
@@ -216,7 +215,7 @@ export default function SchedulePage() {
       />
 
       <AnimatePresence mode="wait">
-        <motion.main 
+        <motion.main
           key={`${viewMode}-${currentDate.toISOString()}`}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -224,6 +223,10 @@ export default function SchedulePage() {
           transition={{ duration: 0.2 }}
           className="container mx-auto py-6 px-4 space-y-6"
         >
+          <ProductivityDashboard
+            schedules={schedules}
+            date={currentDate}
+          />
           <ProductivityAdvice date={currentDate} />
           {viewMode === "timeline" ? (
             <ScheduleTimeline
