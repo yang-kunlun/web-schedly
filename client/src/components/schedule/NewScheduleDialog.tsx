@@ -26,7 +26,8 @@ import {
   AlertOctagon,
   ArrowUp,
   ArrowRight,
-  ArrowDown
+  ArrowDown,
+  Info
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -48,18 +49,24 @@ interface SeverityConfig {
 const priorityConfig = {
   high: {
     label: "高优先级",
+    description: "紧急且重要的任务，需要立即处理，对其他任务或目标有重大影响",
     icon: ArrowUp,
     color: "text-red-500",
+    bgColor: "bg-red-50",
   },
   normal: {
     label: "普通优先级",
+    description: "重要但不紧急的任务，按计划处理即可",
     icon: ArrowRight,
     color: "text-blue-500",
+    bgColor: "bg-blue-50",
   },
   low: {
     label: "低优先级",
+    description: "可以稍后处理的任务，推迟执行不会造成明显影响",
     icon: ArrowDown,
     color: "text-green-500",
+    bgColor: "bg-green-50",
   }
 } as const;
 
@@ -101,6 +108,7 @@ export function NewScheduleDialog({
   const [remarks, setRemarks] = useState(schedule?.remarks || "");
   const [priority, setPriority] = useState<"high" | "normal" | "low">(schedule?.priority || "normal");
   const [priorityExplanation, setPriorityExplanation] = useState<string>("");
+  const [isAIPriority, setIsAIPriority] = useState(false);
   const [description, setDescription] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isCheckingConflicts, setIsCheckingConflicts] = useState(false);
@@ -146,6 +154,7 @@ export function NewScheduleDialog({
         if (suggestion.remarks) setRemarks(suggestion.remarks);
         if (suggestion.priority) {
           setPriority(suggestion.priority);
+          setIsAIPriority(true);
           setPriorityExplanation("AI建议的优先级，您可以根据实际需要修改。");
         }
 
@@ -211,6 +220,12 @@ export function NewScheduleDialog({
       priority,
     });
     onClose();
+  };
+
+  const handlePriorityChange = (value: "high" | "normal" | "low") => {
+    setPriority(value);
+    setIsAIPriority(false);
+    setPriorityExplanation("");
   };
 
   return (
@@ -315,12 +330,18 @@ export function NewScheduleDialog({
                 <div className="space-y-2">
                   <Label htmlFor="priority" className="flex items-center gap-2">
                     优先级
+                    {isAIPriority && (
+                      <div className="ml-2 flex items-center text-sm text-gray-500">
+                        <Info className="h-4 w-4 mr-1" />
+                        AI建议
+                      </div>
+                    )}
                   </Label>
                   <Select
                     value={priority}
-                    onValueChange={(value: "high" | "normal" | "low") => setPriority(value)}
+                    onValueChange={handlePriorityChange}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={`${priorityConfig[priority].bgColor}`}>
                       <SelectValue>
                         <div className="flex items-center gap-2">
                           {priority && (
@@ -336,12 +357,21 @@ export function NewScheduleDialog({
                     </SelectTrigger>
                     <SelectContent>
                       {Object.entries(priorityConfig).map(([key, config]) => (
-                        <SelectItem key={key} value={key}>
-                          <div className="flex items-center gap-2">
-                            {React.createElement(config.icon, {
-                              className: `h-4 w-4 ${config.color}`
-                            })}
-                            <span>{config.label}</span>
+                        <SelectItem 
+                          key={key} 
+                          value={key}
+                          className={`${config.bgColor} hover:${config.bgColor}`}
+                        >
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              {React.createElement(config.icon, {
+                                className: `h-4 w-4 ${config.color}`
+                              })}
+                              <span className="font-medium">{config.label}</span>
+                            </div>
+                            <p className="text-xs text-gray-500 pl-6">
+                              {config.description}
+                            </p>
                           </div>
                         </SelectItem>
                       ))}
