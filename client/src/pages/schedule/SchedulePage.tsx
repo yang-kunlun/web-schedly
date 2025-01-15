@@ -30,7 +30,7 @@ function NewScheduleButton({ onClick }: { onClick: () => void }) {
         size="lg"
         onClick={onClick}
       >
-        <Plus className="mr-2 h-4 w-4" /> New Schedule
+        <Plus className="mr-2 h-4 w-4" /> 新建日程
       </Button>
     </motion.div>
   );
@@ -52,6 +52,7 @@ export default function SchedulePage() {
     queryFn: () => getSchedules(currentDate),
   });
 
+  // 按优先级和开始时间对日程进行排序
   const sortedSchedules = useMemo(() =>
     [...schedules].sort((a, b) => {
       // 首先按优先级排序
@@ -71,7 +72,7 @@ export default function SchedulePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
       toast({
         title: "日程创建成功",
-        description: "您的日程已成功创建。",
+        description: "您的日程已成功创建并自动进行了优先级分析。",
       });
       setIsNewScheduleOpen(false);
     },
@@ -91,7 +92,7 @@ export default function SchedulePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
       toast({
         title: "日程更新成功",
-        description: "您的日程已成功更新。",
+        description: "您的日程已成功更新，优先级已重新分析。",
       });
       setEditingSchedule(undefined);
     },
