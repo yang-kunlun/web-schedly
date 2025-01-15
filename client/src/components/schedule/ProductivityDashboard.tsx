@@ -20,7 +20,10 @@ import { motion } from "framer-motion";
 import {
   Percent,
   BarChart3,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  Clock,
+  Target,
+  TrendingUp
 } from "lucide-react";
 
 interface ProductivityDashboardProps {
@@ -115,7 +118,23 @@ export function ProductivityDashboard({ schedules, date }: ProductivityDashboard
   }, [completionStats]);
 
   if (!schedules.length) {
-    return null;
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              今日效率指标
+            </CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center h-[200px] text-muted-foreground">
+              暂无日程数据
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -147,11 +166,13 @@ export function ProductivityDashboard({ schedules, date }: ProductivityDashboard
                 </div>
               </div>
               <div className="mt-2 h-2 w-full rounded-full bg-secondary">
-                <div
-                  className="h-2 rounded-full bg-primary transition-all duration-500"
-                  style={{ 
+                <motion.div
+                  className="h-2 rounded-full bg-primary"
+                  initial={{ width: 0 }}
+                  animate={{ 
                     width: `${Math.min(100, Math.max(0, completionStats.taskCompletion))}%` 
                   }}
+                  transition={{ duration: 1, ease: "easeOut" }}
                 />
               </div>
             </div>
@@ -164,11 +185,13 @@ export function ProductivityDashboard({ schedules, date }: ProductivityDashboard
                 </span>
               </div>
               <div className="mt-1 h-2 w-full rounded-full bg-secondary">
-                <div
-                  className="h-2 rounded-full bg-primary/70 transition-all duration-500"
-                  style={{ 
+                <motion.div
+                  className="h-2 rounded-full bg-primary/70"
+                  initial={{ width: 0 }}
+                  animate={{ 
                     width: `${Math.min(100, Math.max(0, completionStats.durationCompletion))}%` 
                   }}
+                  transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
                 />
               </div>
             </div>
@@ -186,28 +209,39 @@ export function ProductivityDashboard({ schedules, date }: ProductivityDashboard
           <div className="h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={timeSlotData} barGap={0}>
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" className="opacity-50" />
                 <XAxis 
                   dataKey="hour" 
                   scale="point" 
                   padding={{ left: 10, right: 10 }} 
+                  tick={{ fontSize: 12 }}
                 />
-                <YAxis />
+                <YAxis 
+                  tick={{ fontSize: 12 }}
+                  tickFormatter={(value) => `${value}分钟`}
+                />
                 <Tooltip 
                   formatter={(value: number) => `${Math.round(value)}分钟`}
                   labelFormatter={(label: string) => `${label}`}
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--background))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "var(--radius)",
+                  }}
                 />
                 <Bar 
                   dataKey="completed" 
                   stackId="a" 
                   fill={COLORS[0]} 
                   name="已完成"
+                  radius={[4, 4, 0, 0]}
                 />
                 <Bar 
                   dataKey="pending" 
                   stackId="a" 
                   fill={COLORS[1]} 
                   name="待完成"
+                  radius={[4, 4, 0, 0]}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -215,7 +249,7 @@ export function ProductivityDashboard({ schedules, date }: ProductivityDashboard
         </CardContent>
       </Card>
 
-      {/* 饼图 */}
+      {/* 任务完成占比饼图 */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
@@ -235,6 +269,8 @@ export function ProductivityDashboard({ schedules, date }: ProductivityDashboard
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
+                  animationBegin={200}
+                  animationDuration={1000}
                 >
                   {pieChartData.map((entry, index) => (
                     <Cell 
@@ -243,9 +279,17 @@ export function ProductivityDashboard({ schedules, date }: ProductivityDashboard
                     />
                   ))}
                 </Pie>
-                <Legend />
                 <Tooltip 
                   formatter={(value: number) => `${Math.round(value)}分钟`}
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--background))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "var(--radius)",
+                  }}
+                />
+                <Legend 
+                  verticalAlign="bottom" 
+                  height={36}
                 />
               </PieChart>
             </ResponsiveContainer>

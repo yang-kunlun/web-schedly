@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
-import { Clock } from "lucide-react";
+import { Clock, ArrowUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ScheduleTimelineProps {
   schedules: Schedule[];
@@ -21,7 +22,7 @@ interface ScheduleTimelineProps {
 function ScheduleCardSkeleton() {
   return (
     <div className="w-full">
-      <Skeleton className="h-24 w-full rounded-lg" />
+      <Skeleton className="h-24 w-full rounded-lg bg-gradient-to-r from-orange-100/50 to-orange-50/50" />
     </div>
   );
 }
@@ -36,6 +37,7 @@ export function ScheduleTimeline({
   endHour = 22,
 }: ScheduleTimelineProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
   const isMobile = useMediaQuery("(max-width: 640px)");
 
   const sortedSchedules = useMemo(
@@ -46,9 +48,9 @@ export function ScheduleTimeline({
     [schedules]
   );
 
-  // Calculate timeline height: each hour is 80px tall
-  const totalHours = endHour - startHour + 1; // Add 1 to include both start and end hours
-  const timelineHeight = totalHours * 80;
+  // Calculate timeline height: each hour is 100px tall
+  const totalHours = endHour - startHour + 1;
+  const timelineHeight = totalHours * 100;
 
   // 滚动到当前时间
   const scrollToCurrentTime = useCallback(() => {
@@ -60,8 +62,8 @@ export function ScheduleTimeline({
 
     if (currentHour >= startHour && currentHour <= endHour) {
       const hourDiff = currentHour - startHour;
-      const minuteOffset = (currentMinutes / 60) * 80;
-      const scrollPosition = (hourDiff * 80) + minuteOffset - 200; // 200px offset for better viewing
+      const minuteOffset = (currentMinutes / 60) * 100;
+      const scrollPosition = (hourDiff * 100) + minuteOffset - 200;
 
       scrollRef.current.scrollTo({
         top: Math.max(0, scrollPosition),
@@ -70,15 +72,24 @@ export function ScheduleTimeline({
     }
   }, [startHour, endHour]);
 
-  // 当组件加载时自动滚动到当前时间
+  // 滚动到顶部
+  const scrollToTop = useCallback(() => {
+    if (!scrollRef.current) return;
+    scrollRef.current.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  }, []);
+
+  // 组件加载时自动滚动到当前时间
   useEffect(() => {
-    const timer = setTimeout(scrollToCurrentTime, 500); // 延迟滚动以确保组件完全渲染
+    const timer = setTimeout(scrollToCurrentTime, 500);
     return () => clearTimeout(timer);
   }, [scrollToCurrentTime]);
 
   if (isLoading) {
     return (
-      <div className="flex h-[calc(100vh-12rem)] rounded-lg overflow-hidden shadow-xl">
+      <div className="flex h-[calc(100vh-12rem)] rounded-lg overflow-hidden shadow-xl bg-white">
         <TimeAxis startHour={startHour} endHour={endHour} />
         <div className="flex-1 p-4 space-y-4 bg-gradient-to-br from-orange-50/50 to-white/50 backdrop-blur-sm">
           {Array.from({ length: 5 }).map((_, index) => (
@@ -98,7 +109,7 @@ export function ScheduleTimeline({
 
   return (
     <div className={cn(
-      "flex rounded-lg overflow-hidden shadow-xl",
+      "flex rounded-lg overflow-hidden shadow-xl bg-white",
       "h-[calc(100vh-12rem)]",
       "transition-all duration-300 ease-in-out"
     )}>
@@ -116,24 +127,35 @@ export function ScheduleTimeline({
       >
         {/* 背景装饰 */}
         <div className="absolute inset-0 bg-white/50 backdrop-blur-md" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,237,213,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,237,213,0.1)_1px,transparent_1px)] bg-[size:20px_20px]" />
+        <div 
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `
+              linear-gradient(rgba(255,237,213,0.1) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255,237,213,0.1) 1px, transparent 1px)
+            `,
+            backgroundSize: '20px 100px, 20px 100px'
+          }}
+        />
 
         {/* 时间线内容区域 */}
         <div 
+          ref={timelineRef}
           className="relative px-2 sm:px-4"
           style={{ height: `${timelineHeight}px` }}
         >
+          {/* 当前时间指示器 */}
+          <CurrentTimeIndicator startHour={startHour} />
+
           <AnimatePresence mode="popLayout">
             {sortedSchedules.map((schedule) => {
-              // 计算日程卡片的位置
               const startHourDiff = schedule.startTime.getHours() - startHour;
               const startMinutes = schedule.startTime.getMinutes();
-              const topPosition = (startHourDiff * 80) + ((startMinutes / 60) * 80);
+              const topPosition = (startHourDiff * 100) + ((startMinutes / 60) * 100);
 
-              // 计算日程持续时间（转换为小时）
               const durationMs = schedule.endTime.getTime() - schedule.startTime.getTime();
               const durationHours = durationMs / (1000 * 60 * 60);
-              const height = Math.max(durationHours * 80, 48); // 最小高度48px
+              const height = Math.max(durationHours * 100, 60);
 
               return (
                 <motion.div
@@ -167,36 +189,54 @@ export function ScheduleTimeline({
           </AnimatePresence>
         </div>
 
-        {/* 固定在底部的滚动到当前时间按钮 */}
-        <motion.button
-          className={cn(
-            "fixed bottom-4 right-4 z-10",
-            "bg-orange-500 text-white",
-            "rounded-full px-4 py-2",
-            "shadow-lg flex items-center gap-2",
-            "hover:bg-orange-600 transition-colors",
-            "sm:hidden" // 在桌面端隐藏
-          )}
-          onClick={scrollToCurrentTime}
-          whileTap={{ scale: 0.95 }}
-        >
-          <Clock className="w-4 h-4" />
-          <span>现在</span>
-        </motion.button>
+        {/* 固定按钮组 */}
+        <div className="fixed bottom-4 right-4 space-y-2">
+          {/* 滚动到顶部按钮 */}
+          <Button
+            size="icon"
+            variant="secondary"
+            className="shadow-lg"
+            onClick={scrollToTop}
+          >
+            <ArrowUp className="h-4 w-4" />
+          </Button>
+
+          {/* 滚动到当前时间按钮 */}
+          <Button
+            size="icon"
+            className="shadow-lg"
+            onClick={scrollToCurrentTime}
+          >
+            <Clock className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );
 }
 
-function getMarginTop(time: Date, startHour: number): number {
-  const hours = time.getHours();
-  const minutes = time.getMinutes();
-  const hourDiff = Math.max(0, hours - startHour); // 确保不会出现负值
-  const minuteOffset = (minutes / 60) * 80;
-  return hourDiff * 80 + minuteOffset;
-}
+// 当前时间指示器组件
+function CurrentTimeIndicator({ startHour }: { startHour: number }) {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinutes = now.getMinutes();
 
-function getDurationInHours(startTime: Date, endTime: Date): number {
-  const diff = endTime.getTime() - startTime.getTime();
-  return Math.max(diff / (1000 * 60 * 60), 0.5); // 最小duration为30分钟
+  const hourDiff = currentHour - startHour;
+  const minuteOffset = (currentMinutes / 60) * 100;
+  const topPosition = (hourDiff * 100) + minuteOffset;
+
+  // 如果当前时间不在显示范围内，则不显示指示器
+  if (hourDiff < 0) return null;
+
+  return (
+    <div 
+      className="absolute left-0 right-0 z-10 pointer-events-none"
+      style={{ top: `${topPosition}px` }}
+    >
+      <div className="relative flex items-center">
+        <div className="w-2 h-2 rounded-full bg-orange-500 shadow-lg" />
+        <div className="flex-1 h-px bg-orange-500/50" />
+      </div>
+    </div>
+  );
 }

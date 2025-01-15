@@ -39,7 +39,7 @@ export function TimeAxis({ className, startHour = 6, endHour = 22 }: TimeAxisPro
     // 计算相对于startHour的小时差
     const hourDiff = hour - startHour;
     // 加上分钟的比例
-    return (hourDiff * 80) + ((minutes / 60) * 80);
+    return (hourDiff * 100) + ((minutes / 60) * 100);
   };
 
   const currentTimePosition = getCurrentTimePosition();
@@ -65,8 +65,8 @@ export function TimeAxis({ className, startHour = 6, endHour = 22 }: TimeAxisPro
               key={hour}
               className="absolute w-full cursor-pointer"
               style={{ 
-                top: `${index * 80}px`,
-                height: "80px"
+                top: `${index * 100}px`,
+                height: "100px"
               }}
               onHoverStart={() => setHoveredHour(hour)}
               onHoverEnd={() => setHoveredHour(null)}
