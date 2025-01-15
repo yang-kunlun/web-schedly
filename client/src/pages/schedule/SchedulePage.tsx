@@ -179,8 +179,8 @@ export default function SchedulePage() {
             schedules={sortedSchedules}
             isLoading={isLoading}
             onEdit={setEditingSchedule}
-            onDelete={id => deleteMutation.mutate(id)}
-            onToggleStatus={(id, isDone) => 
+            onDelete={(id: number) => deleteMutation.mutate(id)}
+            onToggleStatus={(id: number, isDone: boolean) => 
               updateMutation.mutate({ id, data: { isDone } })
             }
           />
