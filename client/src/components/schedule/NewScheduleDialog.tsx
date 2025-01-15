@@ -1,9 +1,16 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Schedule } from "@/types/schedule";
 import { analyzeSchedule, checkScheduleConflicts } from "@/lib/api";
@@ -16,11 +23,12 @@ import {
   Loader2,
   AlertTriangle,
   AlertCircle,
-  AlertOctagon
+  AlertOctagon,
+  ArrowUp,
+  ArrowRight,
+  ArrowDown
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { format } from "date-fns";
-import { zhCN } from "date-fns/locale";
 import { useDebounce } from "@/hooks/use-debounce";
 
 interface NewScheduleDialogProps {
@@ -30,6 +38,52 @@ interface NewScheduleDialogProps {
   onSave: (schedule: Partial<Schedule>) => void;
 }
 
+interface SeverityConfig {
+  icon: React.ElementType;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+}
+
+const priorityConfig = {
+  high: {
+    label: "高优先级",
+    icon: ArrowUp,
+    color: "text-red-500",
+  },
+  normal: {
+    label: "普通优先级",
+    icon: ArrowRight,
+    color: "text-blue-500",
+  },
+  low: {
+    label: "低优先级",
+    icon: ArrowDown,
+    color: "text-green-500",
+  }
+} as const;
+
+const severityConfig: Record<string, SeverityConfig> = {
+  low: {
+    icon: AlertTriangle,
+    color: "text-yellow-500",
+    bgColor: "bg-yellow-50",
+    borderColor: "border-yellow-200"
+  },
+  medium: {
+    icon: AlertCircle,
+    color: "text-orange-500",
+    bgColor: "bg-orange-50",
+    borderColor: "border-orange-200"
+  },
+  high: {
+    icon: AlertOctagon,
+    color: "text-red-500",
+    bgColor: "bg-red-50",
+    borderColor: "border-red-200"
+  }
+};
+
 export function NewScheduleDialog({
   schedule,
   isOpen,
@@ -38,20 +92,21 @@ export function NewScheduleDialog({
 }: NewScheduleDialogProps) {
   const [title, setTitle] = useState(schedule?.title || "");
   const [startTime, setStartTime] = useState(
-    schedule?.startTime.toISOString().slice(0, 16) || ""
+    schedule?.startTime ? new Date(schedule.startTime).toISOString().slice(0, 16) : ""
   );
   const [endTime, setEndTime] = useState(
-    schedule?.endTime.toISOString().slice(0, 16) || ""
+    schedule?.endTime ? new Date(schedule.endTime).toISOString().slice(0, 16) : ""
   );
   const [location, setLocation] = useState(schedule?.location || "");
   const [remarks, setRemarks] = useState(schedule?.remarks || "");
+  const [priority, setPriority] = useState<"high" | "normal" | "low">(schedule?.priority || "normal");
+  const [priorityExplanation, setPriorityExplanation] = useState<string>("");
   const [description, setDescription] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isCheckingConflicts, setIsCheckingConflicts] = useState(false);
   const [conflicts, setConflicts] = useState<any>(null);
   const { toast } = useToast();
 
-  // 使用防抖来避免频繁的冲突检查
   const debouncedStartTime = useDebounce(startTime, 500);
   const debouncedEndTime = useDebounce(endTime, 500);
 
@@ -82,17 +137,25 @@ export function NewScheduleDialog({
     try {
       setIsAnalyzing(true);
       const suggestion = await analyzeSchedule(description);
-      setTitle(suggestion.title);
-      setStartTime(suggestion.startTime.slice(0, 16));
-      setEndTime(suggestion.endTime.slice(0, 16));
-      if (suggestion.location) setLocation(suggestion.location);
-      if (suggestion.remarks) setRemarks(suggestion.remarks);
-      toast({
-        title: "AI分析完成",
-        description: "已自动填充日程信息，请检查并按需修改。",
-      });
-      // 分析完成后检查冲突
-      await checkConflicts();
+
+      if (suggestion) {
+        setTitle(suggestion.title || "");
+        if (suggestion.startTime) setStartTime(suggestion.startTime.slice(0, 16));
+        if (suggestion.endTime) setEndTime(suggestion.endTime.slice(0, 16));
+        if (suggestion.location) setLocation(suggestion.location);
+        if (suggestion.remarks) setRemarks(suggestion.remarks);
+        if (suggestion.priority) {
+          setPriority(suggestion.priority);
+          setPriorityExplanation("AI建议的优先级，您可以根据实际需要修改。");
+        }
+
+        toast({
+          title: "AI分析完成",
+          description: "已自动填充日程信息，请检查并按需修改。",
+        });
+
+        await checkConflicts();
+      }
     } catch (error) {
       toast({
         title: "AI分析失败",
@@ -107,28 +170,7 @@ export function NewScheduleDialog({
   const renderConflictAlert = () => {
     if (!conflicts?.hasConflict) return null;
 
-    const severityConfig = {
-      low: {
-        icon: AlertTriangle,
-        color: "text-yellow-500",
-        bgColor: "bg-yellow-50",
-        borderColor: "border-yellow-200"
-      },
-      medium: {
-        icon: AlertCircle,
-        color: "text-orange-500",
-        bgColor: "bg-orange-50",
-        borderColor: "border-orange-200"
-      },
-      high: {
-        icon: AlertOctagon,
-        color: "text-red-500",
-        bgColor: "bg-red-50",
-        borderColor: "border-red-200"
-      }
-    };
-
-    const config = severityConfig[conflicts.severity];
+    const config = severityConfig[conflicts.severity || 'low'];
     const Icon = config.icon;
 
     return (
@@ -153,7 +195,6 @@ export function NewScheduleDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 如果有高严重度的冲突，显示确认对话框
     if (conflicts?.hasConflict && conflicts.severity === "high") {
       const confirmed = window.confirm(
         "检测到严重的时间冲突，确定要继续保存吗？"
@@ -167,6 +208,7 @@ export function NewScheduleDialog({
       endTime: new Date(endTime),
       location,
       remarks,
+      priority,
     });
     onClose();
   };
@@ -268,6 +310,46 @@ export function NewScheduleDialog({
                       className="border-orange-200 focus:ring-orange-500"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="priority" className="flex items-center gap-2">
+                    优先级
+                  </Label>
+                  <Select
+                    value={priority}
+                    onValueChange={(value: "high" | "normal" | "low") => setPriority(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue>
+                        <div className="flex items-center gap-2">
+                          {priority && (
+                            <>
+                              {React.createElement(priorityConfig[priority].icon, {
+                                className: `h-4 w-4 ${priorityConfig[priority].color}`
+                              })}
+                              <span>{priorityConfig[priority].label}</span>
+                            </>
+                          )}
+                        </div>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(priorityConfig).map(([key, config]) => (
+                        <SelectItem key={key} value={key}>
+                          <div className="flex items-center gap-2">
+                            {React.createElement(config.icon, {
+                              className: `h-4 w-4 ${config.color}`
+                            })}
+                            <span>{config.label}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {priorityExplanation && (
+                    <p className="text-sm text-gray-500 mt-1">{priorityExplanation}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

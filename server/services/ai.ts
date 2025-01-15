@@ -23,14 +23,6 @@ interface PriorityAnalysis {
   explanation: string;
 }
 
-interface ScheduleRecommendation {
-  title: string;
-  suggestedStartTime: string;
-  suggestedEndTime: string;
-  priority: "high" | "normal" | "low";
-  reasoning: string;
-}
-
 export async function getScheduleRecommendations(
   schedules: Schedule[],
   date: Date
@@ -160,7 +152,7 @@ export async function analyzePriority(
             5. 影响范围：对其他任务、个人目标的影响
 
             基于以上因素，为日程分配优先级(high/normal/low)并提供分析说明。
-            返回JSON格式：{ "priority": "high" | "normal" | "low", "explanation": "分析说明" }`
+            返回格式：{"priority": "high" | "normal" | "low", "explanation": "分析说明"}`
           },
           { 
             role: "user", 
@@ -178,22 +170,21 @@ export async function analyzePriority(
     }
 
     const data = await response.json();
-    let result: PriorityAnalysis;
+    // 直接使用返回的content，不再进行额外的JSON.parse
+    const result = data.choices[0].message.content;
 
-    try {
-      result = JSON.parse(data.choices[0].message.content);
-      if (!result.priority || !result.explanation) {
-        throw new Error("Invalid response format");
-      }
-    } catch (e) {
-      console.error("Failed to parse AI priority analysis:", data.choices[0].message.content);
-      throw new Error("Failed to parse AI response");
+    if (!result.priority || !result.explanation) {
+      throw new Error("Invalid response format");
     }
 
     return result;
   } catch (error) {
     console.error("Priority analysis failed:", error);
-    throw new Error("Failed to analyze schedule priority");
+    // 如果AI分析失败，返回默认优先级
+    return {
+      priority: "normal",
+      explanation: "由于AI分析暂时不可用，已设置为默认优先级。您可以手动修改优先级。"
+    };
   }
 }
 
@@ -318,4 +309,12 @@ export async function analyzeSchedule(description: string): Promise<ScheduleSugg
     console.error("AI analysis failed:", error);
     throw new Error("Failed to analyze schedule with AI");
   }
+}
+
+interface ScheduleRecommendation {
+  title: string;
+  suggestedStartTime: string;
+  suggestedEndTime: string;
+  priority: "high" | "normal" | "low";
+  reasoning: string;
 }
