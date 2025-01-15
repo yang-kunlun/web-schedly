@@ -14,6 +14,7 @@ import { ThemeSettings } from "@/components/schedule/ThemeSettings";
 import { ProductivityDashboard } from "@/components/schedule/ProductivityDashboard";
 import { ScheduleList } from "@/components/schedule/ScheduleList";
 import { ScheduleRecommendations } from "@/components/schedule/ScheduleRecommendations";
+import { useNotifications } from "@/hooks/use-notifications";
 
 function NewScheduleButton({ onClick }: { onClick: () => void }) {
   return (
@@ -38,6 +39,9 @@ function NewScheduleButton({ onClick }: { onClick: () => void }) {
 }
 
 export default function SchedulePage() {
+  // 启用实时通知
+  useNotifications();
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isNewScheduleOpen, setIsNewScheduleOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<Schedule | undefined>();

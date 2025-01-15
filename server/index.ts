@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { createServer } from "http";
+import { initializeNotificationService } from "./services/notification";
 
 const app = express();
 app.use(express.json());
@@ -40,7 +41,11 @@ app.use((req, res, next) => {
 
 async function startServer(port: number): Promise<void> {
   try {
-    const server = registerRoutes(app);
+    const server = createServer(app);
+    registerRoutes(app);
+
+    // 初始化WebSocket通知服务
+    initializeNotificationService(server);
 
     // Global error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

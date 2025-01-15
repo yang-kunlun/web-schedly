@@ -1,5 +1,4 @@
 import type { Express } from "express";
-import { createServer, type Server } from "http";
 import { db } from "@db";
 import { schedules, type Schedule } from "@db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
@@ -7,10 +6,11 @@ import { startOfDay, endOfDay } from "date-fns";
 import { log } from "./vite";
 import { analyzeSchedule, getProductivityAdvice, analyzePriority, getScheduleRecommendations } from "./services/ai";
 import { detectScheduleConflicts } from "./services/schedule-conflict";
+import { getNotificationService } from "./services/notification";
 import fs from "fs/promises";
 import path from "path";
 
-export function registerRoutes(app: Express): Server {
+export function registerRoutes(app: Express): void {
   // Get schedules for a specific date
   app.get("/api/schedules", async (req, res, next) => {
     try {
@@ -121,13 +121,11 @@ export function registerRoutes(app: Express): Server {
 
       const conflicts = detectScheduleConflicts(newSchedule, existingSchedules);
 
-      // 分析优先级
       const priorityAnalysis = await analyzePriority(
         { ...newSchedule, id: -1 } as Schedule,
         existingSchedules
       );
 
-      // 添加优先级信息到新日程
       const scheduleWithMetadata = {
         ...newSchedule,
         conflictInfo: conflicts.hasConflict ? conflicts : null,
@@ -142,6 +140,9 @@ export function registerRoutes(app: Express): Server {
           endTime: new Date(scheduleWithMetadata.endTime),
         })
         .returning();
+
+      // 发送创建通知
+      getNotificationService().notifyScheduleCreated(created[0].title);
 
       res.status(201).json({
         schedule: created[0],
@@ -163,7 +164,6 @@ export function registerRoutes(app: Express): Server {
 
       const updateData = req.body as Partial<Schedule>;
 
-      // Check for conflicts if time is being updated
       let conflicts = null;
       let priorityAnalysis = null;
 
@@ -187,7 +187,6 @@ export function registerRoutes(app: Express): Server {
           updateData.conflictInfo = conflicts.hasConflict ? conflicts : null;
         }
 
-        // 重新分析优先级
         const currentSchedule = await db.query.schedules.findFirst({
           where: eq(schedules.id, parseInt(id))
         });
@@ -216,6 +215,9 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Schedule not found" });
       }
 
+      // 发送更新通知
+      getNotificationService().notifyScheduleUpdated(updatedSchedule[0].title);
+
       res.json({
         schedule: updatedSchedule[0],
         conflicts,
@@ -234,7 +236,17 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Invalid schedule ID" });
       }
 
-      await db.delete(schedules).where(eq(schedules.id, parseInt(id)));
+      // 获取日程信息用于通知
+      const schedule = await db.query.schedules.findFirst({
+        where: eq(schedules.id, parseInt(id))
+      });
+
+      if (schedule) {
+        await db.delete(schedules).where(eq(schedules.id, parseInt(id)));
+        // 发送删除通知
+        getNotificationService().notifyScheduleDeleted(schedule.title);
+      }
+
       res.status(204).send();
     } catch (error) {
       next(error);
@@ -305,7 +317,4 @@ export function registerRoutes(app: Express): Server {
       next(error);
     }
   });
-
-  const httpServer = createServer(app);
-  return httpServer;
 }
