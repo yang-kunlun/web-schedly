@@ -23,6 +23,97 @@ interface PriorityAnalysis {
   explanation: string;
 }
 
+interface ScheduleRecommendation {
+  title: string;
+  suggestedStartTime: string;
+  suggestedEndTime: string;
+  priority: "high" | "normal" | "low";
+  reasoning: string;
+}
+
+export async function getScheduleRecommendations(
+  schedules: Schedule[],
+  date: Date
+): Promise<ScheduleRecommendation[]> {
+  if (!process.env.DEEPSEEK_API_KEY) {
+    throw new Error("Missing DEEPSEEK_API_KEY");
+  }
+
+  try {
+    const context = {
+      existingSchedules: schedules.map(s => ({
+        title: s.title,
+        description: s.remarks || "",
+        startTime: s.startTime,
+        endTime: s.endTime,
+        priority: s.priority,
+        isDone: s.isDone
+      })),
+      targetDate: date.toISOString(),
+      currentTime: new Date().toISOString(),
+    };
+
+    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [
+          { 
+            role: "system", 
+            content: `你是一个智能日程规划助手。基于用户当前的日程安排，提供智能的日程建议。分析时考虑：
+            1. 时间分配：避免日程过于密集，确保合理的间隔
+            2. 优先级平衡：高优先级任务应优先安排在精力充沛的时段
+            3. 工作效率：考虑用户的工作习惯和生理规律
+            4. 健康因素：确保适当的休息和调整时间
+
+            返回JSON数组，每个建议包含：
+            {
+              "title": "建议的日程标题",
+              "suggestedStartTime": "建议的开始时间",
+              "suggestedEndTime": "建议的结束时间",
+              "priority": "优先级",
+              "reasoning": "建议原因"
+            }`
+          },
+          { 
+            role: "user", 
+            content: JSON.stringify(context)
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 1000,
+        response_format: { type: "json_object" }
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    let recommendations: ScheduleRecommendation[];
+
+    try {
+      recommendations = JSON.parse(data.choices[0].message.content);
+      if (!Array.isArray(recommendations)) {
+        throw new Error("Invalid recommendations format");
+      }
+    } catch (e) {
+      console.error("Failed to parse AI recommendations:", data.choices[0].message.content);
+      throw new Error("Failed to parse AI response");
+    }
+
+    return recommendations;
+  } catch (error) {
+    console.error("Schedule recommendations failed:", error);
+    throw new Error("Failed to generate schedule recommendations");
+  }
+}
+
 export async function analyzePriority(
   schedule: Schedule,
   existingSchedules: Schedule[]

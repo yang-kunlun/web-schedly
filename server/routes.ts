@@ -5,7 +5,7 @@ import { schedules, type Schedule } from "@db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { startOfDay, endOfDay } from "date-fns";
 import { log } from "./vite";
-import { analyzeSchedule, getProductivityAdvice, analyzePriority } from "./services/ai";
+import { analyzeSchedule, getProductivityAdvice, analyzePriority, getScheduleRecommendations } from "./services/ai";
 import { detectScheduleConflicts } from "./services/schedule-conflict";
 import fs from "fs/promises";
 import path from "path";
@@ -275,6 +275,32 @@ export function registerRoutes(app: Express): Server {
 
       await fs.writeFile(themeConfigPath, JSON.stringify(updatedTheme, null, 2));
       res.status(200).json({ message: "Theme appearance updated successfully" });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Get schedule recommendations
+  app.get("/api/schedules/recommendations", async (req, res, next) => {
+    try {
+      const date = new Date(req.query.date as string);
+      if (isNaN(date.getTime())) {
+        return res.status(400).json({ message: "Invalid date format" });
+      }
+
+      const dayStart = startOfDay(date);
+      const dayEnd = endOfDay(date);
+
+      const schedulesList = await db.query.schedules.findMany({
+        where: and(
+          gte(schedules.startTime, dayStart),
+          lte(schedules.startTime, dayEnd)
+        ),
+        orderBy: schedules.startTime,
+      });
+
+      const recommendations = await getScheduleRecommendations(schedulesList, date);
+      res.json(recommendations);
     } catch (error) {
       next(error);
     }
