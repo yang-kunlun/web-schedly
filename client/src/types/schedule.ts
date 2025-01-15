@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export type Priority = 'high' | 'normal' | 'low';
+
 export interface Schedule {
   id: number;
   title: string;
@@ -9,6 +11,19 @@ export interface Schedule {
   remarks?: string;
   isDone: boolean;
   icon?: string;
+  priority?: Priority;
+  conflictInfo?: {
+    hasConflict: boolean;
+    conflictingSchedules: Array<{
+      id: number;
+      title: string;
+      startTime: string;
+      endTime: string;
+      overlapDuration: number;
+    }>;
+    severity: 'low' | 'medium' | 'high';
+    suggestion: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,6 +59,7 @@ export const scheduleSchema = z.object({
   remarks: z.string().optional(),
   isDone: z.boolean(),
   icon: z.string().optional(),
+  priority: z.enum(['high', 'normal', 'low']).optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

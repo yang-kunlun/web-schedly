@@ -1,11 +1,9 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DateHeader } from "@/components/schedule/DateHeader";
-import { ScheduleTimeline } from "@/components/schedule/ScheduleTimeline";
-import { HeatmapView } from "@/components/schedule/HeatmapView";
 import { NewScheduleDialog } from "@/components/schedule/NewScheduleDialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar, BarChart2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Schedule } from "@/types/schedule";
 import { getSchedules, createSchedule, updateSchedule, deleteSchedule } from "@/lib/api";
 import { startOfWeek, addDays } from "date-fns";
@@ -14,8 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ProductivityAdvice } from "@/components/schedule/ProductivityAdvice";
 import { ThemeSettings } from "@/components/schedule/ThemeSettings";
 import { ProductivityDashboard } from "@/components/schedule/ProductivityDashboard";
-
-type ViewMode = "timeline" | "heatmap";
+import { ScheduleList } from "@/components/schedule/ScheduleList";
 
 function NewScheduleButton({ onClick }: { onClick: () => void }) {
   return (
@@ -43,9 +40,6 @@ export default function SchedulePage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isNewScheduleOpen, setIsNewScheduleOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<Schedule | undefined>();
-  const [viewMode, setViewMode] = useState<ViewMode>("timeline");
-  const [startHour, setStartHour] = useState(6);
-  const [endHour, setEndHour] = useState(22);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -58,48 +52,17 @@ export default function SchedulePage() {
     queryFn: () => getSchedules(currentDate),
   });
 
-  const defaultSchedules = useMemo(() => {
-    const wakeUpTime = new Date(currentDate);
-    wakeUpTime.setHours(startHour, 0, 0, 0);
+  const sortedSchedules = useMemo(() =>
+    [...schedules].sort((a, b) => {
+      // 首先按优先级排序
+      const priorityOrder = { high: 0, normal: 1, low: 2 };
+      const priorityDiff = priorityOrder[a.priority || 'normal'] - priorityOrder[b.priority || 'normal'];
+      if (priorityDiff !== 0) return priorityDiff;
 
-    const sleepTime = new Date(currentDate);
-    sleepTime.setHours(endHour, 0, 0, 0);
-
-    const defaultItems: Schedule[] = [
-      {
-        id: -1,
-        title: "起床了",
-        startTime: wakeUpTime,
-        endTime: new Date(wakeUpTime.getTime() + 30 * 60000),
-        isDone: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        icon: "sun",
-      },
-      {
-        id: -2,
-        title: "睡觉时间",
-        startTime: sleepTime,
-        endTime: new Date(sleepTime.getTime() + 30 * 60000),
-        isDone: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        icon: "moon",
-      },
-    ];
-
-    return defaultItems.filter(defaultItem =>
-      !schedules.some(schedule =>
-        Math.abs(schedule.startTime.getTime() - defaultItem.startTime.getTime()) < 30 * 60000
-      )
-    );
-  }, [schedules, currentDate, startHour, endHour]);
-
-  const allSchedules = useMemo(() =>
-    [...schedules, ...defaultSchedules].sort((a, b) =>
-      a.startTime.getTime() - b.startTime.getTime()
-    ),
-    [schedules, defaultSchedules]
+      // 其次按开始时间排序
+      return a.startTime.getTime() - b.startTime.getTime();
+    }),
+    [schedules]
   );
 
   const createMutation = useMutation({
@@ -107,14 +70,14 @@ export default function SchedulePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
       toast({
-        title: "Schedule created",
-        description: "Your schedule has been created successfully.",
+        title: "日程创建成功",
+        description: "您的日程已成功创建。",
       });
       setIsNewScheduleOpen(false);
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to create schedule",
+        title: "创建失败",
         description: error.message,
         variant: "destructive",
       });
@@ -127,14 +90,14 @@ export default function SchedulePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
       toast({
-        title: "Schedule updated",
-        description: "Your schedule has been updated successfully.",
+        title: "日程更新成功",
+        description: "您的日程已成功更新。",
       });
       setEditingSchedule(undefined);
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to update schedule",
+        title: "更新失败",
         description: error.message,
         variant: "destructive",
       });
@@ -146,13 +109,13 @@ export default function SchedulePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
       toast({
-        title: "Schedule deleted",
-        description: "Your schedule has been deleted successfully.",
+        title: "日程删除成功",
+        description: "您的日程已成功删除。",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to delete schedule",
+        title: "删除失败",
         description: error.message,
         variant: "destructive",
       });
@@ -185,25 +148,7 @@ export default function SchedulePage() {
           >
             卡片计划 Schedly
           </motion.h1>
-          <div className="flex items-center gap-2">
-            <ThemeSettings />
-            <Button
-              variant={viewMode === "timeline" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("timeline")}
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              时间线
-            </Button>
-            <Button
-              variant={viewMode === "heatmap" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("heatmap")}
-            >
-              <BarChart2 className="h-4 w-4 mr-2" />
-              热力图
-            </Button>
-          </div>
+          <ThemeSettings />
         </div>
       </header>
 
@@ -216,7 +161,7 @@ export default function SchedulePage() {
 
       <AnimatePresence mode="wait">
         <motion.main
-          key={`${viewMode}-${currentDate.toISOString()}`}
+          key={currentDate.toISOString()}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
@@ -228,28 +173,16 @@ export default function SchedulePage() {
             date={currentDate}
           />
           <ProductivityAdvice date={currentDate} />
-          {viewMode === "timeline" ? (
-            <ScheduleTimeline
-              schedules={allSchedules}
-              onEdit={schedule => {
-                if (schedule.id > 0) setEditingSchedule(schedule);
-              }}
-              onDelete={id => {
-                if (id > 0) deleteMutation.mutate(id);
-              }}
-              onToggleStatus={(id, isDone) => {
-                if (id > 0) updateMutation.mutate({ id, data: { isDone } });
-              }}
-              isLoading={isLoading}
-              startHour={startHour}
-              endHour={endHour}
-            />
-          ) : (
-            <HeatmapView
-              schedules={schedules}
-              currentDate={currentDate}
-            />
-          )}
+
+          <ScheduleList
+            schedules={sortedSchedules}
+            isLoading={isLoading}
+            onEdit={setEditingSchedule}
+            onDelete={id => deleteMutation.mutate(id)}
+            onToggleStatus={(id, isDone) => 
+              updateMutation.mutate({ id, data: { isDone } })
+            }
+          />
 
           <NewScheduleButton onClick={() => setIsNewScheduleOpen(true)} />
 

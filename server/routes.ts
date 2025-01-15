@@ -1,11 +1,11 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { schedules } from "@db/schema";
+import { schedules, type Schedule } from "@db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { startOfDay, endOfDay } from "date-fns";
 import { log } from "./vite";
-import { analyzeSchedule, getProductivityAdvice } from "./services/ai";
+import { analyzeSchedule, getProductivityAdvice, analyzePriority } from "./services/ai";
 import { detectScheduleConflicts } from "./services/schedule-conflict";
 import fs from "fs/promises";
 import path from "path";
@@ -103,12 +103,11 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Create a new schedule with conflict check
+  // Create a new schedule with priority analysis
   app.post("/api/schedules", async (req, res, next) => {
     try {
-      const newSchedule = req.body;
+      const newSchedule = req.body as Omit<Schedule, "id" | "createdAt" | "updatedAt">;
 
-      // Check for conflicts
       const date = new Date(newSchedule.startTime);
       const dayStart = startOfDay(date);
       const dayEnd = endOfDay(date);
@@ -122,31 +121,39 @@ export function registerRoutes(app: Express): Server {
 
       const conflicts = detectScheduleConflicts(newSchedule, existingSchedules);
 
-      // 添加冲突信息到新日程
-      const scheduleWithConflicts = {
+      // 分析优先级
+      const priorityAnalysis = await analyzePriority(
+        { ...newSchedule, id: -1 } as Schedule,
+        existingSchedules
+      );
+
+      // 添加优先级信息到新日程
+      const scheduleWithMetadata = {
         ...newSchedule,
         conflictInfo: conflicts.hasConflict ? conflicts : null,
+        priority: priorityAnalysis.priority,
       };
 
       const created = await db
         .insert(schedules)
         .values({
-          ...scheduleWithConflicts,
-          startTime: new Date(scheduleWithConflicts.startTime),
-          endTime: new Date(scheduleWithConflicts.endTime),
+          ...scheduleWithMetadata,
+          startTime: new Date(scheduleWithMetadata.startTime),
+          endTime: new Date(scheduleWithMetadata.endTime),
         })
         .returning();
 
       res.status(201).json({
         schedule: created[0],
-        conflicts
+        conflicts,
+        priorityAnalysis
       });
     } catch (error) {
       next(error);
     }
   });
 
-  // Update a schedule with conflict check
+  // Update a schedule with priority analysis
   app.patch("/api/schedules/:id", async (req, res, next) => {
     try {
       const { id } = req.params;
@@ -154,11 +161,13 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Invalid schedule ID" });
       }
 
-      const updateData = req.body;
+      const updateData = req.body as Partial<Schedule>;
 
       // Check for conflicts if time is being updated
       let conflicts = null;
-      if (updateData.startTime || updateData.endTime) {
+      let priorityAnalysis = null;
+
+      if (updateData.startTime || updateData.endTime || updateData.title || updateData.remarks) {
         const date = new Date(updateData.startTime || new Date());
         const dayStart = startOfDay(date);
         const dayEnd = endOfDay(date);
@@ -170,8 +179,26 @@ export function registerRoutes(app: Express): Server {
           )
         });
 
-        conflicts = detectScheduleConflicts({ ...updateData, id: parseInt(id) }, existingSchedules);
-        updateData.conflictInfo = conflicts.hasConflict ? conflicts : null;
+        if (updateData.startTime || updateData.endTime) {
+          conflicts = detectScheduleConflicts(
+            { ...updateData, id: parseInt(id) } as Schedule,
+            existingSchedules
+          );
+          updateData.conflictInfo = conflicts.hasConflict ? conflicts : null;
+        }
+
+        // 重新分析优先级
+        const currentSchedule = await db.query.schedules.findFirst({
+          where: eq(schedules.id, parseInt(id))
+        });
+
+        if (currentSchedule) {
+          priorityAnalysis = await analyzePriority(
+            { ...currentSchedule, ...updateData } as Schedule,
+            existingSchedules.filter(s => s.id !== parseInt(id))
+          );
+          updateData.priority = priorityAnalysis.priority;
+        }
       }
 
       const updatedSchedule = await db
@@ -180,6 +207,7 @@ export function registerRoutes(app: Express): Server {
           ...updateData,
           startTime: updateData.startTime ? new Date(updateData.startTime) : undefined,
           endTime: updateData.endTime ? new Date(updateData.endTime) : undefined,
+          updatedAt: new Date(),
         })
         .where(eq(schedules.id, parseInt(id)))
         .returning();
@@ -190,7 +218,8 @@ export function registerRoutes(app: Express): Server {
 
       res.json({
         schedule: updatedSchedule[0],
-        conflicts
+        conflicts,
+        priorityAnalysis
       });
     } catch (error) {
       next(error);

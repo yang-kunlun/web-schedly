@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { createServer } from "http";
 
 const app = express();
 app.use(express.json());
@@ -37,7 +38,7 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
+async function startServer(port: number): Promise<void> {
   try {
     const server = registerRoutes(app);
 
@@ -55,12 +56,28 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    const PORT = 5000;
-    server.listen(PORT, "0.0.0.0", () => {
-      log(`Server is running on port ${PORT}`);
+    return new Promise((resolve, reject) => {
+      server.listen(port, "0.0.0.0", () => {
+        log(`Server is running on port ${port}`);
+        resolve();
+      }).on('error', (error: any) => {
+        if (error.code === 'EADDRINUSE') {
+          log(`Port ${port} is in use, trying another port...`);
+          server.close();
+          startServer(port + 1).then(resolve).catch(reject);
+        } else {
+          reject(error);
+        }
+      });
     });
   } catch (error) {
     log(`Failed to start server: ${error}`);
-    process.exit(1);
+    throw error;
   }
-})();
+}
+
+// Start server with initial port
+startServer(5000).catch((error) => {
+  log(`Critical server error: ${error}`);
+  process.exit(1);
+});

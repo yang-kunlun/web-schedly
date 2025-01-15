@@ -20,3 +20,6 @@ export const insertScheduleSchema = createInsertSchema(schedules);
 export const selectScheduleSchema = createSelectSchema(schedules);
 export type InsertSchedule = typeof schedules.$inferInsert;
 export type SelectSchedule = typeof schedules.$inferSelect;
+
+// Export Schedule type alias for convenience
+export type Schedule = SelectSchedule;
