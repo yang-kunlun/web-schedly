@@ -172,41 +172,49 @@ export default function SchedulePage() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.2 }}
-          className="container mx-auto py-6 px-4 space-y-6"
+          className="container mx-auto py-6 px-4"
         >
-          <ProductivityDashboard
-            schedules={schedules}
-            date={currentDate}
-          />
+          {/* 主要日程列表部分 */}
+          <div className="mb-8">
+            <ScheduleList
+              schedules={sortedSchedules}
+              isLoading={isLoading}
+              onEdit={setEditingSchedule}
+              onDelete={(id: number) => deleteMutation.mutate(id)}
+              onToggleStatus={(id: number, isDone: boolean) =>
+                updateMutation.mutate({ id, data: { isDone } })
+              }
+            />
+          </div>
 
-          <ScheduleRecommendations
-            date={currentDate}
-            onSelectRecommendation={(recommendation) => {
-              setEditingSchedule(undefined);
-              setIsNewScheduleOpen(true);
-              // 预填充推荐的日程信息
-              const newSchedule: Partial<Schedule> = {
-                title: recommendation.title,
-                startTime: new Date(recommendation.suggestedStartTime),
-                endTime: new Date(recommendation.suggestedEndTime),
-                priority: recommendation.priority,
-                remarks: recommendation.reasoning,
-              };
-              handleSaveSchedule(newSchedule);
-            }}
-          />
-
-          <ProductivityAdvice date={currentDate} />
-
-          <ScheduleList
-            schedules={sortedSchedules}
-            isLoading={isLoading}
-            onEdit={setEditingSchedule}
-            onDelete={(id: number) => deleteMutation.mutate(id)}
-            onToggleStatus={(id: number, isDone: boolean) =>
-              updateMutation.mutate({ id, data: { isDone } })
-            }
-          />
+          {/* 次要信息部分 */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-6">
+              <ProductivityDashboard
+                schedules={schedules}
+                date={currentDate}
+              />
+              <ProductivityAdvice date={currentDate} />
+            </div>
+            <div>
+              <ScheduleRecommendations
+                date={currentDate}
+                onSelectRecommendation={(recommendation) => {
+                  setEditingSchedule(undefined);
+                  setIsNewScheduleOpen(true);
+                  // 预填充推荐的日程信息
+                  const newSchedule: Partial<Schedule> = {
+                    title: recommendation.title,
+                    startTime: new Date(recommendation.suggestedStartTime),
+                    endTime: new Date(recommendation.suggestedEndTime),
+                    priority: recommendation.priority,
+                    remarks: recommendation.reasoning,
+                  };
+                  handleSaveSchedule(newSchedule);
+                }}
+              />
+            </div>
+          </div>
 
           <NewScheduleButton onClick={() => setIsNewScheduleOpen(true)} />
 
