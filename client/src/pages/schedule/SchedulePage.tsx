@@ -13,6 +13,7 @@ import { ProductivityAdvice } from "@/components/schedule/ProductivityAdvice";
 import { ThemeSettings } from "@/components/schedule/ThemeSettings";
 import { ProductivityDashboard } from "@/components/schedule/ProductivityDashboard";
 import { ScheduleList } from "@/components/schedule/ScheduleList";
+import { ScheduleRecommendations } from "@/components/schedule/ScheduleRecommendations";
 
 function NewScheduleButton({ onClick }: { onClick: () => void }) {
   return (
@@ -173,6 +174,24 @@ export default function SchedulePage() {
             schedules={schedules}
             date={currentDate}
           />
+
+          <ScheduleRecommendations
+            date={currentDate}
+            onSelectRecommendation={(recommendation) => {
+              setEditingSchedule(undefined);
+              setIsNewScheduleOpen(true);
+              // 预填充推荐的日程信息
+              const newSchedule: Partial<Schedule> = {
+                title: recommendation.title,
+                startTime: new Date(recommendation.suggestedStartTime),
+                endTime: new Date(recommendation.suggestedEndTime),
+                priority: recommendation.priority,
+                remarks: recommendation.reasoning,
+              };
+              handleSaveSchedule(newSchedule);
+            }}
+          />
+
           <ProductivityAdvice date={currentDate} />
 
           <ScheduleList
@@ -180,7 +199,7 @@ export default function SchedulePage() {
             isLoading={isLoading}
             onEdit={setEditingSchedule}
             onDelete={(id: number) => deleteMutation.mutate(id)}
-            onToggleStatus={(id: number, isDone: boolean) => 
+            onToggleStatus={(id: number, isDone: boolean) =>
               updateMutation.mutate({ id, data: { isDone } })
             }
           />

@@ -10,17 +10,22 @@ interface ScheduleSuggestion {
   priority?: "high" | "normal" | "low";
 }
 
-interface ProductivityAdvice {
-  summary: string;
-  timeBalance: string;
-  productivity: string;
-  health: string;
-  score: number;
-}
-
-interface PriorityAnalysis {
+interface ScheduleRecommendation {
+  title: string;
+  suggestedStartTime: string;
+  suggestedEndTime: string;
   priority: "high" | "normal" | "low";
-  explanation: string;
+  reasoning: string;
+  category: "work" | "meeting" | "break" | "personal";
+  efficiency: {
+    score: number;
+    factors: string[];
+  };
+  alternativeSlots?: Array<{
+    startTime: string;
+    endTime: string;
+    benefit: string;
+  }>;
 }
 
 export async function getScheduleRecommendations(
@@ -43,6 +48,8 @@ export async function getScheduleRecommendations(
       })),
       targetDate: date.toISOString(),
       currentTime: new Date().toISOString(),
+      dayOfWeek: date.getDay(),
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
     };
 
     const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
@@ -56,20 +63,50 @@ export async function getScheduleRecommendations(
         messages: [
           { 
             role: "system", 
-            content: `你是一个智能日程规划助手。基于用户当前的日程安排，提供智能的日程建议。分析时考虑：
-            1. 时间分配：避免日程过于密集，确保合理的间隔
-            2. 优先级平衡：高优先级任务应优先安排在精力充沛的时段
-            3. 工作效率：考虑用户的工作习惯和生理规律
-            4. 健康因素：确保适当的休息和调整时间
+            content: `你是一个先进的智能日程规划助手，需要基于现有日程提供全面的智能建议。分析维度包括：
 
-            返回JSON数组，每个建议包含：
-            {
-              "title": "建议的日程标题",
-              "suggestedStartTime": "建议的开始时间",
-              "suggestedEndTime": "建议的结束时间",
-              "priority": "优先级",
-              "reasoning": "建议原因"
-            }`
+1. 时间分配优化：
+   - 识别最佳时间段
+   - 避免日程过于密集
+   - 考虑通勤和准备时间
+   - 提供多个可选时间段
+
+2. 效率最大化：
+   - 高效率时段安排重要任务
+   - 合理分配休息时间
+   - 根据任务类型分配合适时段
+   - 考虑人体生理规律
+
+3. 优先级平衡：
+   - 高优先级任务优先安排
+   - 平衡紧急和重要任务
+   - 考虑任务依赖关系
+   - 预留应急缓冲时间
+
+4. 个性化建议：
+   - 根据过往完成情况
+   - 适应个人工作习惯
+   - 考虑场地和位置因素
+   - 智能分类任务类型
+
+返回JSON数组，每个建议包含：
+{
+  "title": "建议的日程标题",
+  "suggestedStartTime": "建议的开始时间",
+  "suggestedEndTime": "建议的结束时间",
+  "priority": "high/normal/low",
+  "category": "work/meeting/break/personal",
+  "reasoning": "详细的建议原因",
+  "efficiency": {
+    "score": "效率评分(0-100)",
+    "factors": ["影响效率的因素列表"]
+  },
+  "alternativeSlots": [{
+    "startTime": "备选开始时间",
+    "endTime": "备选结束时间",
+    "benefit": "选择此时间段的好处"
+  }]
+}`
           },
           { 
             role: "user", 
@@ -77,7 +114,7 @@ export async function getScheduleRecommendations(
           }
         ],
         temperature: 0.3,
-        max_tokens: 1000,
+        max_tokens: 1500,
         response_format: { type: "json_object" }
       }),
     });
@@ -150,7 +187,7 @@ export async function analyzePriority(
             3. 上下文关联：与其他日程的依赖关系
             4. 资源投入：所需时间和精力
             5. 影响范围：对其他任务、个人目标的影响
-
+            
             基于以上因素，为日程分配优先级(high/normal/low)并提供分析说明。
             返回格式：{"priority": "high" | "normal" | "low", "explanation": "分析说明"}`
           },
@@ -222,7 +259,7 @@ export async function getProductivityAdvice(schedules: Schedule[]): Promise<Prod
             2. 时间分配：各类任务的时间分配是否均衡
             3. 生产效率：任务完成情况和效率
             4. 健康建议：工作与休息的平衡
-
+            
             返回JSON格式：{
               "summary": "总体评估",
               "timeBalance": "时间分配建议",
@@ -311,10 +348,15 @@ export async function analyzeSchedule(description: string): Promise<ScheduleSugg
   }
 }
 
-interface ScheduleRecommendation {
-  title: string;
-  suggestedStartTime: string;
-  suggestedEndTime: string;
+interface PriorityAnalysis {
   priority: "high" | "normal" | "low";
-  reasoning: string;
+  explanation: string;
+}
+
+interface ProductivityAdvice {
+  summary: string;
+  timeBalance: string;
+  productivity: string;
+  health: string;
+  score: number;
 }

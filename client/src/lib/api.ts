@@ -56,6 +56,19 @@ export async function checkScheduleConflicts(schedule: Partial<Schedule>) {
   return response.json();
 }
 
+export async function getScheduleRecommendations(date: Date) {
+  const response = await fetch(
+    `${API_BASE}/schedules/recommendations?date=${date.toISOString()}`,
+    {
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    throw new Error("Failed to fetch schedule recommendations");
+  }
+  return response.json();
+}
+
 export async function createSchedule(schedule: Omit<Schedule, "id" | "createdAt" | "updatedAt">) {
   const response = await fetch(`${API_BASE}/schedules`, {
     method: "POST",
