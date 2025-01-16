@@ -14,6 +14,7 @@ import { ThemeSettings } from "@/components/schedule/ThemeSettings";
 import { ProductivityDashboard } from "@/components/schedule/ProductivityDashboard";
 import { ScheduleList } from "@/components/schedule/ScheduleList";
 import { ScheduleRecommendations } from "@/components/schedule/ScheduleRecommendations";
+import { ImportanceChart } from "@/components/schedule/ImportanceChart";
 import { useNotifications } from "@/hooks/use-notifications";
 
 function NewScheduleButton({ onClick }: { onClick: () => void }) {
@@ -190,6 +191,7 @@ export default function SchedulePage() {
           {/* 次要信息部分 */}
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-6">
+              <ImportanceChart schedules={schedules} />
               <ProductivityDashboard
                 schedules={schedules}
                 date={currentDate}
