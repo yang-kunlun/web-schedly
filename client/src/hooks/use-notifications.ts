@@ -15,32 +15,50 @@ export function useNotifications() {
       try {
         wsRef.current = new WebSocket(wsUrl);
 
+        // 添加平台和设备标识头
+        const headers = {
+          'X-Platform': 'web',
+          'X-Device-ID': localStorage.getItem('deviceId') || `web-${Date.now()}`
+        };
+
         wsRef.current.onopen = () => {
           console.log('WebSocket connected');
           // 清除重连定时器
           if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
           }
+
+          // 存储设备ID
+          if (!localStorage.getItem('deviceId')) {
+            localStorage.setItem('deviceId', headers['X-Device-ID']);
+          }
+
+          // 请求同步数据
+          wsRef.current?.send(JSON.stringify({ type: 'sync_request' }));
         };
 
         wsRef.current.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
+            let variant: "default" | "destructive" | undefined;
+            let title = data.title || '通知';
 
-            // 根据通知类型设置不同的样式
-            let variant: "default" | "destructive" = data.type === 'create' ? 'default' : 'destructive';
-            let title = '通知';
-
+            // 根据通知类型和优先级设置样式
             switch (data.type) {
               case 'create':
-                title = '新建日程';
+                variant = 'default';
                 break;
               case 'update':
-                title = '更新日程';
                 variant = 'default';
                 break;
               case 'delete':
-                title = '删除日程';
+                variant = 'destructive';
+                break;
+              case 'reminder':
+                variant = data.priority === 'high' ? 'destructive' : 'default';
+                break;
+              case 'sync':
+                variant = 'default';
                 break;
             }
 
@@ -49,7 +67,14 @@ export function useNotifications() {
               title,
               description: data.message,
               variant,
+              duration: data.type === 'reminder' ? 10000 : 5000, // 提醒通知显示更长时间
             });
+
+            // 如果是同步通知，可以在这里处理数据同步
+            if (data.type === 'sync' && data.data) {
+              // TODO: 处理同步数据
+              console.log('Received sync data:', data.data);
+            }
           } catch (error) {
             console.error('Failed to parse notification:', error);
           }
