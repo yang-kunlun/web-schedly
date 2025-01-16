@@ -1,4 +1,4 @@
-import { ResponsiveContainer, Tooltip, RechartTooltipProps } from "recharts";
+import { ResponsiveContainer } from "recharts";
 import { Schedule } from "@/types/schedule";
 import { format, eachDayOfInterval, startOfWeek, endOfWeek, isEqual, isSameMonth } from "date-fns";
 import { zhCN } from "date-fns/locale";

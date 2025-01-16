@@ -17,6 +17,7 @@ import { ScheduleRecommendations } from "@/components/schedule/ScheduleRecommend
 import { ImportanceChart } from "@/components/schedule/ImportanceChart";
 import { useNotifications } from "@/hooks/use-notifications";
 import { CalendarView } from "@/components/schedule/CalendarView";
+import { HeatmapView } from "@/components/schedule/HeatmapView";
 
 function NewScheduleButton({ onClick }: { onClick: () => void }) {
   return (
@@ -189,10 +190,13 @@ export default function SchedulePage() {
             />
           </div>
 
-          {/* 次要信息部分 */}
+          {/* 分析和可视化部分 */}
           <div className="grid gap-6 md:grid-cols-3">
             <div className="space-y-6 md:col-span-2">
-              <ImportanceChart schedules={schedules} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <ImportanceChart schedules={schedules} />
+                <HeatmapView schedules={schedules} currentDate={currentDate} />
+              </div>
               <ProductivityDashboard
                 schedules={schedules}
                 date={currentDate}
