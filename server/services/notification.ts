@@ -10,6 +10,13 @@ interface NotificationPayload {
   priority?: 'high' | 'normal' | 'low';
   timestamp: string;
   data?: any;
+  style?: {
+    variant?: 'default' | 'destructive' | 'success' | 'warning';
+    duration?: number;
+    icon?: string;
+    sound?: boolean;
+    position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+  };
 }
 
 interface VerifyClientInfo {
@@ -22,11 +29,50 @@ interface ConnectedClient {
   ws: WebSocket;
   platform: string;
   deviceId: string;
+  preferences?: {
+    sound: boolean;
+    position: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+    duration: number;
+  };
 }
 
 class NotificationService {
   private wss: WebSocketServer;
   private clients: Map<string, ConnectedClient> = new Map();
+
+  // 默认通知样式配置
+  private defaultStyles = {
+    create: {
+      variant: 'success',
+      duration: 5000,
+      icon: 'plus-circle',
+      sound: true
+    },
+    update: {
+      variant: 'default',
+      duration: 3000,
+      icon: 'pencil',
+      sound: false
+    },
+    delete: {
+      variant: 'destructive',
+      duration: 5000,
+      icon: 'trash',
+      sound: true
+    },
+    reminder: {
+      variant: 'warning',
+      duration: 10000,
+      icon: 'bell',
+      sound: true
+    },
+    sync: {
+      variant: 'default',
+      duration: 3000,
+      icon: 'refresh-cw',
+      sound: false
+    }
+  } as const;
 
   constructor(server: Server) {
     this.wss = new WebSocketServer({ 
@@ -48,7 +94,17 @@ class NotificationService {
 
       log(`New client connected from ${platform} (${deviceId})`);
 
-      this.clients.set(deviceId, { ws, platform, deviceId });
+      // 设置默认偏好设置
+      this.clients.set(deviceId, {
+        ws,
+        platform,
+        deviceId,
+        preferences: {
+          sound: true,
+          position: 'top-right',
+          duration: 5000
+        }
+      });
 
       // 发送连接成功通知
       this.sendToClient(ws, {
@@ -56,7 +112,8 @@ class NotificationService {
         title: '连接成功',
         message: `已建立${platform}平台实时通知连接`,
         platform,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        style: this.defaultStyles.create
       });
 
       // 向其他客户端发送同步通知
@@ -65,8 +122,13 @@ class NotificationService {
       ws.on('message', (message: string) => {
         try {
           const data = JSON.parse(message);
-          if (data.type === 'sync_request') {
-            this.handleSyncRequest(deviceId);
+          switch (data.type) {
+            case 'sync_request':
+              this.handleSyncRequest(deviceId);
+              break;
+            case 'update_preferences':
+              this.updateClientPreferences(deviceId, data.preferences);
+              break;
           }
         } catch (error) {
           log(`Failed to parse message: ${error}`);
@@ -89,12 +151,36 @@ class NotificationService {
     });
   }
 
+  private updateClientPreferences(deviceId: string, preferences: Partial<ConnectedClient['preferences']>) {
+    const client = this.clients.get(deviceId);
+    if (client && client.preferences) {
+      client.preferences = {
+        ...client.preferences,
+        ...preferences
+      };
+      this.clients.set(deviceId, client);
+
+      // 发送确认通知
+      this.sendToClient(client.ws, {
+        type: 'create',
+        title: '设置更新',
+        message: '通知偏好设置已更新',
+        timestamp: new Date().toISOString(),
+        style: {
+          variant: 'success',
+          duration: 3000
+        }
+      });
+    }
+  }
+
   private broadcastSync(sourceDeviceId: string, sourcePlatform: string) {
     const syncMessage: NotificationPayload = {
       type: 'sync',
       title: '设备同步',
       message: `新设备已连接: ${sourcePlatform}`,
       timestamp: new Date().toISOString(),
+      style: this.defaultStyles.sync
     };
 
     this.clients.forEach((client, deviceId) => {
@@ -113,18 +199,30 @@ class NotificationService {
         title: '同步完成',
         message: '日程数据已同步',
         timestamp: new Date().toISOString(),
+        style: this.defaultStyles.sync
       });
     }
   }
 
   public broadcast(payload: Omit<NotificationPayload, 'timestamp'>) {
+    const style = this.defaultStyles[payload.type];
     const message = {
       ...payload,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      style
     };
 
     this.clients.forEach(client => {
       if (client.ws.readyState === WebSocket.OPEN) {
+        // 应用客户端的偏好设置
+        if (client.preferences) {
+          message.style = {
+            ...style,
+            sound: client.preferences.sound,
+            position: client.preferences.position,
+            duration: client.preferences.duration
+          };
+        }
         this.sendToClient(client.ws, message);
       }
     });
@@ -142,7 +240,7 @@ class NotificationService {
       type: 'create',
       title: '新日程创建',
       message: `新日程 "${title}" 已创建`,
-      priority: 'normal',
+      priority: 'normal'
     });
   }
 
@@ -152,7 +250,7 @@ class NotificationService {
       type: 'update',
       title: '日程更新',
       message: `日程 "${title}" 已更新`,
-      priority: 'normal',
+      priority: 'normal'
     });
   }
 
@@ -162,7 +260,7 @@ class NotificationService {
       type: 'delete',
       title: '日程删除',
       message: `日程 "${title}" 已删除`,
-      priority: 'normal',
+      priority: 'normal'
     });
   }
 
@@ -172,7 +270,7 @@ class NotificationService {
       type: 'reminder',
       title: '日程提醒',
       message: `日程 "${title}" 将在 ${this.formatTimeUntil(startTime)} 后开始`,
-      priority: 'high',
+      priority: 'high'
     });
   }
 

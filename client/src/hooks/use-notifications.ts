@@ -1,14 +1,64 @@
-import { useEffect, useRef } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import { useEffect, useRef, useState } from 'react';
+import { useToast, type Toast } from '@/hooks/use-toast';
+import {
+  Bell,
+  Plus,
+  Pencil,
+  Trash,
+  RefreshCw,
+  type LucideIcon
+} from 'lucide-react';
+
+interface NotificationPreferences {
+  sound: boolean;
+  position: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+  duration: number;
+}
+
+interface NotificationStyle {
+  variant?: 'default' | 'destructive' | 'success' | 'warning';
+  duration?: number;
+  icon?: string;
+  sound?: boolean;
+  position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+}
+
+const notificationIcons: Record<string, LucideIcon> = {
+  'bell': Bell,
+  'plus-circle': Plus,
+  'pencil': Pencil,
+  'trash': Trash,
+  'refresh-cw': RefreshCw
+};
 
 export function useNotifications() {
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const [preferences, setPreferences] = useState<NotificationPreferences>({
+    sound: true,
+    position: 'top-right',
+    duration: 5000
+  });
+
+  // 通知音效
+  const notificationSound = new Audio('/notification.mp3');
+
+  const updatePreferences = (newPreferences: Partial<NotificationPreferences>) => {
+    setPreferences(prev => {
+      const updated = { ...prev, ...newPreferences };
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'update_preferences',
+          preferences: updated
+        }));
+      }
+      return updated;
+    });
+  };
 
   useEffect(() => {
     function connect() {
-      // 构建WebSocket URL，使用相同的主机名和端口
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/ws`;
 
@@ -23,7 +73,6 @@ export function useNotifications() {
 
         wsRef.current.onopen = () => {
           console.log('WebSocket connected');
-          // 清除重连定时器
           if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
           }
@@ -40,39 +89,25 @@ export function useNotifications() {
         wsRef.current.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            let variant: "default" | "destructive" | undefined;
-            let title = data.title || '通知';
+            const style = data.style || {};
+            let variant = style.variant || 'default';
+            const IconComponent = style.icon ? notificationIcons[style.icon] : Bell;
 
-            // 根据通知类型和优先级设置样式
-            switch (data.type) {
-              case 'create':
-                variant = 'default';
-                break;
-              case 'update':
-                variant = 'default';
-                break;
-              case 'delete':
-                variant = 'destructive';
-                break;
-              case 'reminder':
-                variant = data.priority === 'high' ? 'destructive' : 'default';
-                break;
-              case 'sync':
-                variant = 'default';
-                break;
+            // 播放通知音效
+            if (style.sound && preferences.sound) {
+              notificationSound.play().catch(console.error);
             }
 
             // 显示通知
             toast({
-              title,
+              title: data.title,
               description: data.message,
-              variant,
-              duration: data.type === 'reminder' ? 10000 : 5000, // 提醒通知显示更长时间
+              variant: variant as Toast['variant'],
+              duration: style.duration || preferences.duration,
             });
 
             // 如果是同步通知，可以在这里处理数据同步
             if (data.type === 'sync' && data.data) {
-              // TODO: 处理同步数据
               console.log('Received sync data:', data.data);
             }
           } catch (error) {
@@ -82,7 +117,6 @@ export function useNotifications() {
 
         wsRef.current.onclose = () => {
           console.log('WebSocket disconnected, attempting to reconnect...');
-          // 设置重连定时器
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
           }, 3000);
@@ -103,7 +137,6 @@ export function useNotifications() {
 
     connect();
 
-    // 清理函数
     return () => {
       if (wsRef.current) {
         wsRef.current.close();
@@ -112,7 +145,11 @@ export function useNotifications() {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [toast]);
+  }, [toast, preferences.sound]);
 
-  return wsRef.current;
+  return {
+    preferences,
+    updatePreferences,
+    wsRef: wsRef.current
+  };
 }
