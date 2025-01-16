@@ -16,6 +16,7 @@ import { ScheduleList } from "@/components/schedule/ScheduleList";
 import { ScheduleRecommendations } from "@/components/schedule/ScheduleRecommendations";
 import { ImportanceChart } from "@/components/schedule/ImportanceChart";
 import { useNotifications } from "@/hooks/use-notifications";
+import { CalendarView } from "@/components/schedule/CalendarView";
 
 function NewScheduleButton({ onClick }: { onClick: () => void }) {
   return (
@@ -189,8 +190,8 @@ export default function SchedulePage() {
           </div>
 
           {/* 次要信息部分 */}
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className="space-y-6 md:col-span-2">
               <ImportanceChart schedules={schedules} />
               <ProductivityDashboard
                 schedules={schedules}
@@ -198,7 +199,11 @@ export default function SchedulePage() {
               />
               <ProductivityAdvice date={currentDate} />
             </div>
-            <div>
+            <div className="space-y-6">
+              <CalendarView
+                schedules={schedules}
+                onDateSelect={setCurrentDate}
+              />
               <ScheduleRecommendations
                 date={currentDate}
                 onSelectRecommendation={(recommendation) => {
