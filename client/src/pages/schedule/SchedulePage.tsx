@@ -31,7 +31,7 @@ function NewScheduleButton({ onClick }: { onClick: () => void }) {
       }}
     >
       <Button
-        className="fixed bottom-8 right-8 shadow-lg"
+        className="fixed bottom-8 right-8 shadow-lg bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-500 hover:to-orange-300"
         size="lg"
         onClick={onClick}
       >
@@ -42,7 +42,6 @@ function NewScheduleButton({ onClick }: { onClick: () => void }) {
 }
 
 export default function SchedulePage() {
-  // 启用实时通知
   useNotifications();
 
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -60,15 +59,11 @@ export default function SchedulePage() {
     queryFn: () => getSchedules(currentDate),
   });
 
-  // 按优先级和开始时间对日程进行排序
   const sortedSchedules = useMemo(() =>
     [...schedules].sort((a, b) => {
-      // 首先按优先级排序
       const priorityOrder = { high: 0, normal: 1, low: 2 };
       const priorityDiff = priorityOrder[a.priority || 'normal'] - priorityOrder[b.priority || 'normal'];
       if (priorityDiff !== 0) return priorityDiff;
-
-      // 其次按开始时间排序
       return a.startTime.getTime() - b.startTime.getTime();
     }),
     [schedules]
@@ -148,8 +143,9 @@ export default function SchedulePage() {
       animate={{ opacity: 1 }}
       className="min-h-screen bg-gradient-to-br from-orange-50 to-white"
     >
-      <header className="bg-white border-b px-6 py-4 shadow-sm">
-        <div className="flex items-center justify-between">
+      {/* 顶部导航栏 */}
+      <header className="bg-white border-b px-6 py-4 shadow-sm sticky top-0 z-50">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
           <motion.h1
             initial={{ y: -20 }}
             animate={{ y: 0 }}
@@ -161,12 +157,17 @@ export default function SchedulePage() {
         </div>
       </header>
 
-      <DateHeader
-        currentDate={currentDate}
-        onDateChange={setCurrentDate}
-        weekDays={weekDays}
-        onSelectDay={setCurrentDate}
-      />
+      {/* 日期选择器 */}
+      <div className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto">
+          <DateHeader
+            currentDate={currentDate}
+            onDateChange={setCurrentDate}
+            weekDays={weekDays}
+            onSelectDay={setCurrentDate}
+          />
+        </div>
+      </div>
 
       <AnimatePresence mode="wait">
         <motion.main
@@ -175,10 +176,10 @@ export default function SchedulePage() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.2 }}
-          className="container mx-auto py-6 px-4"
+          className="container mx-auto py-6 px-4 max-w-7xl"
         >
           {/* 主要日程列表部分 */}
-          <div className="mb-8">
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
             <ScheduleList
               schedules={sortedSchedules}
               isLoading={isLoading}
@@ -191,44 +192,96 @@ export default function SchedulePage() {
           </div>
 
           {/* 分析和可视化部分 */}
-          <div className="grid gap-6 md:grid-cols-3">
-            <div className="space-y-6 md:col-span-2">
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* 左侧和中间列 */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* 重要性图表和热力图 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <ImportanceChart schedules={schedules} />
-                <HeatmapView schedules={schedules} currentDate={currentDate} />
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="bg-white rounded-lg shadow-sm"
+                >
+                  <ImportanceChart schedules={schedules} />
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="bg-white rounded-lg shadow-sm"
+                >
+                  <HeatmapView schedules={schedules} currentDate={currentDate} />
+                </motion.div>
               </div>
-              <ProductivityDashboard
-                schedules={schedules}
-                date={currentDate}
-              />
-              <ProductivityAdvice date={currentDate} />
+
+              {/* 生产力仪表板 */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="bg-white rounded-lg shadow-sm"
+              >
+                <ProductivityDashboard
+                  schedules={schedules}
+                  date={currentDate}
+                />
+              </motion.div>
+
+              {/* 生产力建议 */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="bg-white rounded-lg shadow-sm"
+              >
+                <ProductivityAdvice date={currentDate} />
+              </motion.div>
             </div>
+
+            {/* 右侧边栏 */}
             <div className="space-y-6">
-              <CalendarView
-                schedules={schedules}
-                onDateSelect={setCurrentDate}
-              />
-              <ScheduleRecommendations
-                date={currentDate}
-                onSelectRecommendation={(recommendation) => {
-                  setEditingSchedule(undefined);
-                  setIsNewScheduleOpen(true);
-                  // 预填充推荐的日程信息
-                  const newSchedule: Partial<Schedule> = {
-                    title: recommendation.title,
-                    startTime: new Date(recommendation.suggestedStartTime),
-                    endTime: new Date(recommendation.suggestedEndTime),
-                    priority: recommendation.priority,
-                    remarks: recommendation.reasoning,
-                  };
-                  handleSaveSchedule(newSchedule);
-                }}
-              />
+              {/* 日历视图 */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+                className="bg-white rounded-lg shadow-sm"
+              >
+                <CalendarView
+                  schedules={schedules}
+                  onDateSelect={setCurrentDate}
+                />
+              </motion.div>
+
+              {/* 日程推荐 */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+                className="bg-white rounded-lg shadow-sm"
+              >
+                <ScheduleRecommendations
+                  date={currentDate}
+                  onSelectRecommendation={(recommendation) => {
+                    setEditingSchedule(undefined);
+                    setIsNewScheduleOpen(true);
+                    const newSchedule: Partial<Schedule> = {
+                      title: recommendation.title,
+                      startTime: new Date(recommendation.suggestedStartTime),
+                      endTime: new Date(recommendation.suggestedEndTime),
+                      priority: recommendation.priority,
+                      remarks: recommendation.reasoning,
+                    };
+                    handleSaveSchedule(newSchedule);
+                  }}
+                />
+              </motion.div>
             </div>
           </div>
 
+          {/* 新建日程按钮和对话框 */}
           <NewScheduleButton onClick={() => setIsNewScheduleOpen(true)} />
-
           <NewScheduleDialog
             schedule={editingSchedule}
             isOpen={isNewScheduleOpen || !!editingSchedule}
