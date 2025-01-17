@@ -5,8 +5,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
-import { ArrowUp, ArrowRight, ArrowDown, Clock, MapPin } from "lucide-react";
+import { ArrowUp, ArrowRight, ArrowDown, Clock, MapPin, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 interface ScheduleListProps {
   schedules: Schedule[];
@@ -14,6 +15,7 @@ interface ScheduleListProps {
   onEdit: (schedule: Schedule) => void;
   onDelete: (id: number) => void;
   onToggleStatus: (id: number, isDone: boolean) => void;
+  onReorder?: (sourceIndex: number, destinationIndex: number, priority: string) => void;
 }
 
 const priorityConfig = {
@@ -53,7 +55,8 @@ export function ScheduleList({
   isLoading,
   onEdit,
   onDelete,
-  onToggleStatus
+  onToggleStatus,
+  onReorder
 }: ScheduleListProps) {
   // 按优先级对日程进行分组
   const groupedSchedules = schedules.reduce((groups, schedule) => {
@@ -64,6 +67,17 @@ export function ScheduleList({
     groups[priority].push(schedule);
     return groups;
   }, {} as Record<string, Schedule[]>);
+
+  const handleDragEnd = (result: any) => {
+    if (!result.destination || !onReorder) return;
+
+    const [priority] = result.draggableId.split('-');
+    onReorder(
+      result.source.index,
+      result.destination.index,
+      priority
+    );
+  };
 
   if (isLoading) {
     return (
@@ -95,100 +109,131 @@ export function ScheduleList({
   }
 
   return (
-    <div className="space-y-6">
-      {Object.entries(priorityConfig).map(([priority, config]) => {
-        const prioritySchedules = groupedSchedules[priority] || [];
-        if (!prioritySchedules.length) return null;
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <div className="space-y-6">
+        {Object.entries(priorityConfig).map(([priority, config]) => {
+          const prioritySchedules = groupedSchedules[priority] || [];
+          if (!prioritySchedules.length) return null;
 
-        const Icon = config.icon;
+          const Icon = config.icon;
 
-        return (
-          <motion.div
-            key={priority}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-4"
-          >
-            <div className="flex items-center gap-2">
-              <Icon className={cn("h-5 w-5", config.color)} />
-              <h3 className="font-medium">{config.label}</h3>
-              <Badge variant="outline" className={cn(config.color)}>
-                {prioritySchedules.length}
-              </Badge>
-            </div>
+          return (
+            <motion.div
+              key={priority}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              <div className="flex items-center gap-2">
+                <Icon className={cn("h-5 w-5", config.color)} />
+                <h3 className="font-medium">{config.label}</h3>
+                <Badge variant="outline" className={cn(config.color)}>
+                  {prioritySchedules.length}
+                </Badge>
+              </div>
 
-            <AnimatePresence mode="popLayout">
-              {prioritySchedules.map((schedule) => (
-                <motion.div
-                  key={schedule.id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 500,
-                    damping: 30
-                  }}
-                >
-                  <Card
-                    className={cn(
-                      "p-4 hover:shadow-md transition-shadow cursor-pointer",
-                      schedule.isDone && "opacity-60",
-                      config.bgColor,
-                      config.borderColor
-                    )}
-                    onClick={() => onEdit(schedule)}
+              <Droppable droppableId={priority}>
+                {(provided) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    className="space-y-2"
                   >
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between">
-                        <h4 className={cn(
-                          "font-medium flex-1",
-                          schedule.isDone && "line-through"
-                        )}>
-                          {schedule.title}
-                        </h4>
-                        <input
-                          type="checkbox"
-                          checked={schedule.isDone}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            onToggleStatus(schedule.id, e.target.checked);
-                          }}
-                          className="ml-4"
-                        />
-                      </div>
+                    <AnimatePresence mode="popLayout">
+                      {prioritySchedules.map((schedule, index) => (
+                        <Draggable
+                          key={schedule.id}
+                          draggableId={`${priority}-${schedule.id}`}
+                          index={index}
+                        >
+                          {(provided, snapshot) => (
+                            <motion.div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              layout
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.9 }}
+                              transition={{
+                                type: "spring",
+                                stiffness: 500,
+                                damping: 30
+                              }}
+                              style={{
+                                ...provided.draggableProps.style,
+                              }}
+                            >
+                              <Card
+                                className={cn(
+                                  "p-4 hover:shadow-md transition-shadow",
+                                  schedule.isDone && "opacity-60",
+                                  config.bgColor,
+                                  config.borderColor,
+                                  snapshot.isDragging && "shadow-lg scale-[1.02] z-50",
+                                  "group"
+                                )}
+                                onClick={() => onEdit(schedule)}
+                              >
+                                <div className="space-y-2">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex items-center gap-2 flex-1">
+                                      <GripVertical className="h-5 w-5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                      <h4 className={cn(
+                                        "font-medium",
+                                        schedule.isDone && "line-through"
+                                      )}>
+                                        {schedule.title}
+                                      </h4>
+                                    </div>
+                                    <input
+                                      type="checkbox"
+                                      checked={schedule.isDone}
+                                      onChange={(e) => {
+                                        e.stopPropagation();
+                                        onToggleStatus(schedule.id, e.target.checked);
+                                      }}
+                                      className="ml-4"
+                                    />
+                                  </div>
 
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          <span>
-                            {format(schedule.startTime, "HH:mm", { locale: zhCN })}
-                            {" - "}
-                            {format(schedule.endTime, "HH:mm", { locale: zhCN })}
-                          </span>
-                        </div>
-                        {schedule.location && (
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-4 w-4" />
-                            <span>{schedule.location}</span>
-                          </div>
-                        )}
-                      </div>
+                                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                                    <div className="flex items-center gap-1">
+                                      <Clock className="h-4 w-4" />
+                                      <span>
+                                        {format(schedule.startTime, "HH:mm", { locale: zhCN })}
+                                        {" - "}
+                                        {format(schedule.endTime, "HH:mm", { locale: zhCN })}
+                                      </span>
+                                    </div>
+                                    {schedule.location && (
+                                      <div className="flex items-center gap-1">
+                                        <MapPin className="h-4 w-4" />
+                                        <span>{schedule.location}</span>
+                                      </div>
+                                    )}
+                                  </div>
 
-                      {schedule.remarks && (
-                        <p className="text-sm text-gray-600 mt-2">
-                          {schedule.remarks}
-                        </p>
-                      )}
-                    </div>
-                  </Card>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </motion.div>
-        );
-      })}
-    </div>
+                                  {schedule.remarks && (
+                                    <p className="text-sm text-gray-600 mt-2">
+                                      {schedule.remarks}
+                                    </p>
+                                  )}
+                                </div>
+                              </Card>
+                            </motion.div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </Droppable>
+            </motion.div>
+          );
+        })}
+      </div>
+    </DragDropContext>
   );
 }

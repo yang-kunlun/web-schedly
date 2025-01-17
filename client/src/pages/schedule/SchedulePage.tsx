@@ -137,6 +137,47 @@ export default function SchedulePage() {
     }
   };
 
+  const handleReorder = async (sourceIndex: number, destinationIndex: number, priority: string) => {
+    if (sourceIndex === destinationIndex) return;
+
+    // 获取当前优先级的日程
+    const prioritySchedules = schedules.filter(s => s.priority === priority);
+
+    // 复制并重新排序日程
+    const reorderedSchedules = [...prioritySchedules];
+    const [movedItem] = reorderedSchedules.splice(sourceIndex, 1);
+    reorderedSchedules.splice(destinationIndex, 0, movedItem);
+
+    // 更新排序
+    const updates = reorderedSchedules.map((schedule, index) => ({
+      id: schedule.id,
+      data: { order: index }
+    }));
+
+    try {
+      // 批量更新日程顺序
+      await Promise.all(
+        updates.map(update =>
+          updateMutation.mutate({
+            id: update.id,
+            data: { order: update.order }
+          })
+        )
+      );
+
+      toast({
+        title: "排序已更新",
+        description: "日程顺序已成功保存。",
+      });
+    } catch (error) {
+      toast({
+        title: "更新失败",
+        description: "无法保存新的日程顺序。",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -188,6 +229,7 @@ export default function SchedulePage() {
               onToggleStatus={(id: number, isDone: boolean) =>
                 updateMutation.mutate({ id, data: { isDone } })
               }
+              onReorder={handleReorder}
             />
           </div>
 
