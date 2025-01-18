@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DateHeader } from "@/components/schedule/DateHeader";
 import { NewScheduleDialog } from "@/components/schedule/NewScheduleDialog";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import { Schedule } from "@/types/schedule";
 import { getSchedules, createSchedule, updateSchedule, deleteSchedule } from "@/lib/api";
 import { startOfWeek, addDays } from "date-fns";
@@ -16,6 +16,7 @@ import { ScheduleList } from "@/components/schedule/ScheduleList";
 import { ScheduleRecommendations } from "@/components/schedule/ScheduleRecommendations";
 import { ImportanceChart } from "@/components/schedule/ImportanceChart";
 import { useNotifications } from "@/hooks/use-notifications";
+import { useSync } from "@/hooks/useSync";
 import { CalendarView } from "@/components/schedule/CalendarView";
 import { HeatmapView } from "@/components/schedule/HeatmapView";
 
@@ -41,8 +42,26 @@ function NewScheduleButton({ onClick }: { onClick: () => void }) {
   );
 }
 
+function SyncStatus({ isConnected, lastSyncTime }: { isConnected: boolean; lastSyncTime: Date | null }) {
+  return (
+    <div className="flex items-center gap-2 text-sm text-gray-500">
+      <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+      <span>{isConnected ? '已连接' : '未连接'}</span>
+      {lastSyncTime && (
+        <span className="text-gray-400">
+          上次同步: {lastSyncTime.toLocaleTimeString()}
+        </span>
+      )}
+      <RefreshCw 
+        className={`h-4 w-4 ${isConnected ? 'text-green-500' : 'text-red-500'} ${isConnected && 'animate-spin'}`}
+      />
+    </div>
+  );
+}
+
 export default function SchedulePage() {
   useNotifications();
+  const { isConnected, lastSyncTime } = useSync();
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isNewScheduleOpen, setIsNewScheduleOpen] = useState(false);
@@ -187,13 +206,16 @@ export default function SchedulePage() {
       {/* 顶部导航栏 */}
       <header className="bg-white border-b px-6 py-4 shadow-sm sticky top-0 z-50">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <motion.h1
-            initial={{ y: -20 }}
-            animate={{ y: 0 }}
-            className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent"
-          >
-            卡片计划 Schedly
-          </motion.h1>
+          <div className="flex items-center gap-4">
+            <motion.h1
+              initial={{ y: -20 }}
+              animate={{ y: 0 }}
+              className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent"
+            >
+              卡片计划 Schedly
+            </motion.h1>
+            <SyncStatus isConnected={isConnected} lastSyncTime={lastSyncTime} />
+          </div>
           <ThemeSettings />
         </div>
       </header>

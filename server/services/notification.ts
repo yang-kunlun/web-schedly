@@ -1,6 +1,10 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import { type Server } from 'http';
 import { log } from '../vite';
+import { db } from "@db";
+import { schedules } from "@db/schema";
+import { and, gte, lte } from "drizzle-orm";
+import { startOfDay, endOfDay } from "date-fns";
 
 interface NotificationPayload {
   type: 'create' | 'update' | 'delete' | 'reminder' | 'sync';
@@ -19,6 +23,22 @@ interface NotificationPayload {
   };
 }
 
+interface SyncPayload {
+  type: 'sync_request' | 'sync_response' | 'sync_update';
+  deviceId: string;
+  platform: string;
+  timestamp: string;
+  data?: {
+    schedules?: any[];
+    lastSyncTimestamp?: string;
+    changes?: Array<{
+      type: 'create' | 'update' | 'delete';
+      schedule: any;
+      timestamp: string;
+    }>;
+  };
+}
+
 interface VerifyClientInfo {
   origin: string;
   secure: boolean;
@@ -29,6 +49,7 @@ interface ConnectedClient {
   ws: WebSocket;
   platform: string;
   deviceId: string;
+  lastSyncTimestamp?: string;
   preferences?: {
     sound: boolean;
     position: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
@@ -39,6 +60,7 @@ interface ConnectedClient {
 class NotificationService {
   private wss: WebSocketServer;
   private clients: Map<string, ConnectedClient> = new Map();
+  private syncHistory: Map<string, Array<{type: string, data: any, timestamp: string}>> = new Map();
 
   // 默认通知样式配置
   private defaultStyles = {
@@ -79,7 +101,6 @@ class NotificationService {
       server,
       path: '/ws',
       verifyClient: (info: VerifyClientInfo) => {
-        // 忽略Vite HMR的WebSocket连接请求
         const protocol = info.req.headers['sec-websocket-protocol'];
         return !protocol || protocol !== 'vite-hmr';
       }
@@ -87,8 +108,21 @@ class NotificationService {
     this.setupWebSocket();
   }
 
+  private async getSchedulesForSync(startDate: Date, endDate?: Date) {
+    const query = {
+      where: endDate ? 
+        and(
+          gte(schedules.startTime, startDate),
+          lte(schedules.startTime, endDate)
+        ) :
+        gte(schedules.startTime, startDate)
+    };
+
+    return await db.query.schedules.findMany(query);
+  }
+
   private setupWebSocket() {
-    this.wss.on('connection', (ws: WebSocket, req: any) => {
+    this.wss.on('connection', async (ws: WebSocket, req: any) => {
       const platform = req.headers['x-platform'] || 'web';
       const deviceId = req.headers['x-device-id'] || `web-${Date.now()}`;
 
@@ -119,19 +153,32 @@ class NotificationService {
       // 向其他客户端发送同步通知
       this.broadcastSync(deviceId, platform);
 
-      ws.on('message', (message: string) => {
+      ws.on('message', async (message: string) => {
         try {
           const data = JSON.parse(message);
           switch (data.type) {
             case 'sync_request':
-              this.handleSyncRequest(deviceId);
+              await this.handleSyncRequest(deviceId, data.lastSyncTimestamp);
+              break;
+            case 'sync_update':
+              await this.handleSyncUpdate(deviceId, data.changes);
               break;
             case 'update_preferences':
               this.updateClientPreferences(deviceId, data.preferences);
               break;
           }
         } catch (error) {
-          log(`Failed to parse message: ${error}`);
+          log(`Failed to process message: ${error}`);
+          this.sendToClient(ws, {
+            type: 'sync',
+            title: '同步错误',
+            message: '处理同步请求时发生错误',
+            timestamp: new Date().toISOString(),
+            style: {
+              ...this.defaultStyles.sync,
+              variant: 'destructive'
+            }
+          });
         }
       });
 
@@ -144,6 +191,9 @@ class NotificationService {
         log(`Client disconnected from ${platform} (${deviceId})`);
         this.clients.delete(deviceId);
       });
+
+      // 初始同步
+      await this.handleSyncRequest(deviceId);
     });
 
     this.wss.on('error', (error) => {
@@ -190,16 +240,98 @@ class NotificationService {
     });
   }
 
-  private handleSyncRequest(deviceId: string) {
+  private async handleSyncRequest(deviceId: string, lastSyncTimestamp?: string) {
     const client = this.clients.get(deviceId);
-    if (client && client.ws.readyState === WebSocket.OPEN) {
-      // 在这里可以实现获取最新日程数据的逻辑
+    if (!client || client.ws.readyState !== WebSocket.OPEN) return;
+
+    try {
+      // 获取上次同步时间后的所有日程
+      const startDate = lastSyncTimestamp ? new Date(lastSyncTimestamp) : startOfDay(new Date());
+      const schedules = await this.getSchedulesForSync(startDate);
+
+      // 发送同步数据
+      const syncResponse: SyncPayload = {
+        type: 'sync_response',
+        deviceId,
+        platform: client.platform,
+        timestamp: new Date().toISOString(),
+        data: {
+          schedules,
+          lastSyncTimestamp: new Date().toISOString(),
+        }
+      };
+
+      client.ws.send(JSON.stringify(syncResponse));
+
+      // 更新客户端最后同步时间
+      client.lastSyncTimestamp = new Date().toISOString();
+      this.clients.set(deviceId, client);
+
+      // 发送同步完成通知
       this.sendToClient(client.ws, {
         type: 'sync',
         title: '同步完成',
         message: '日程数据已同步',
         timestamp: new Date().toISOString(),
         style: this.defaultStyles.sync
+      });
+    } catch (error) {
+      log(`Sync request failed for device ${deviceId}: ${error}`);
+      this.sendToClient(client.ws, {
+        type: 'sync',
+        title: '同步失败',
+        message: '无法完成数据同步，请稍后重试',
+        timestamp: new Date().toISOString(),
+        style: {
+          ...this.defaultStyles.sync,
+          variant: 'destructive'
+        }
+      });
+    }
+  }
+
+  private async handleSyncUpdate(deviceId: string, changes: Array<{type: string; data: any; timestamp: string}>) {
+    const client = this.clients.get(deviceId);
+    if (!client || client.ws.readyState !== WebSocket.OPEN) return;
+
+    try {
+      // 记录变更历史
+      this.syncHistory.set(deviceId, changes);
+
+      // 广播变更到其他设备
+      const updatePayload: SyncPayload = {
+        type: 'sync_update',
+        deviceId,
+        platform: client.platform,
+        timestamp: new Date().toISOString(),
+        data: { changes }
+      };
+
+      this.clients.forEach((otherClient, otherId) => {
+        if (otherId !== deviceId && otherClient.ws.readyState === WebSocket.OPEN) {
+          otherClient.ws.send(JSON.stringify(updatePayload));
+        }
+      });
+
+      // 发送确认通知
+      this.sendToClient(client.ws, {
+        type: 'sync',
+        title: '更新同步',
+        message: '变更已同步到其他设备',
+        timestamp: new Date().toISOString(),
+        style: this.defaultStyles.sync
+      });
+    } catch (error) {
+      log(`Sync update failed for device ${deviceId}: ${error}`);
+      this.sendToClient(client.ws, {
+        type: 'sync',
+        title: '同步失败',
+        message: '无法同步变更到其他设备',
+        timestamp: new Date().toISOString(),
+        style: {
+          ...this.defaultStyles.sync,
+          variant: 'destructive'
+        }
       });
     }
   }
