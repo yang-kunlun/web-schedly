@@ -83,7 +83,7 @@ export default function SchedulePage() {
       const priorityOrder = { high: 0, normal: 1, low: 2 };
       const priorityDiff = priorityOrder[a.priority || 'normal'] - priorityOrder[b.priority || 'normal'];
       if (priorityDiff !== 0) return priorityDiff;
-      return a.startTime.getTime() - b.startTime.getTime();
+      return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
     }),
     [schedules]
   );
@@ -91,7 +91,10 @@ export default function SchedulePage() {
   const createMutation = useMutation({
     mutationFn: createSchedule,
     onSuccess: () => {
+      // 使所有相关查询缓存失效
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/schedules/recommendations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/schedules/advice"] });
       toast({
         title: "日程创建成功",
         description: "您的日程已成功创建并自动进行了优先级分析。",
@@ -111,7 +114,10 @@ export default function SchedulePage() {
     mutationFn: ({ id, data }: { id: number; data: Partial<Schedule> }) =>
       updateSchedule(id, data),
     onSuccess: () => {
+      // 使所有相关查询缓存失效
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/schedules/recommendations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/schedules/advice"] });
       toast({
         title: "日程更新成功",
         description: "您的日程已成功更新，优先级已重新分析。",
@@ -130,7 +136,10 @@ export default function SchedulePage() {
   const deleteMutation = useMutation({
     mutationFn: deleteSchedule,
     onSuccess: () => {
+      // 使所有相关查询缓存失效
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/schedules/recommendations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/schedules/advice"] });
       toast({
         title: "日程删除成功",
         description: "您的日程已成功删除。",
@@ -156,45 +165,8 @@ export default function SchedulePage() {
     }
   };
 
-  const handleReorder = async (sourceIndex: number, destinationIndex: number, priority: string) => {
-    if (sourceIndex === destinationIndex) return;
-
-    // 获取当前优先级的日程
-    const prioritySchedules = schedules.filter(s => s.priority === priority);
-
-    // 复制并重新排序日程
-    const reorderedSchedules = [...prioritySchedules];
-    const [movedItem] = reorderedSchedules.splice(sourceIndex, 1);
-    reorderedSchedules.splice(destinationIndex, 0, movedItem);
-
-    // 更新排序
-    const updates = reorderedSchedules.map((schedule, index) => ({
-      id: schedule.id,
-      data: { order: index }
-    }));
-
-    try {
-      // 批量更新日程顺序
-      await Promise.all(
-        updates.map(update =>
-          updateMutation.mutate({
-            id: update.id,
-            data: { order: update.order }
-          })
-        )
-      );
-
-      toast({
-        title: "排序已更新",
-        description: "日程顺序已成功保存。",
-      });
-    } catch (error) {
-      toast({
-        title: "更新失败",
-        description: "无法保存新的日程顺序。",
-        variant: "destructive",
-      });
-    }
+  const handleDateSelect = (date: Date) => {
+    setCurrentDate(date);
   };
 
   return (
@@ -251,7 +223,6 @@ export default function SchedulePage() {
               onToggleStatus={(id: number, isDone: boolean) =>
                 updateMutation.mutate({ id, data: { isDone } })
               }
-              onReorder={handleReorder}
             />
           </div>
 
@@ -314,7 +285,7 @@ export default function SchedulePage() {
               >
                 <CalendarView
                   schedules={schedules}
-                  onDateSelect={setCurrentDate}
+                  onDateSelect={handleDateSelect}
                   selectedDate={currentDate}
                 />
               </motion.div>
