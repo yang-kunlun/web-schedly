@@ -4,12 +4,20 @@ import { schedules, type Schedule } from "@db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { startOfDay, endOfDay } from "date-fns";
 import { log } from "./vite";
-import { analyzeSchedule, getProductivityAdvice, analyzePriority, getScheduleRecommendations, analyzeTimeBlock } from "./services/ai";
+import {
+  analyzeSchedule,
+  getProductivityAdvice,
+  analyzePriority,
+  getScheduleRecommendations,
+  analyzeTimeBlock,
+  analyzeOptimalIntervals
+} from "./services/ai";
 import { detectScheduleConflicts } from "./services/schedule-conflict";
 import { getNotificationService } from "./services/notification";
 import fs from "fs/promises";
 import path from "path";
-import {createServer} from 'http'
+import { createServer } from 'http';
+import { type Server } from "http";
 
 export function registerRoutes(app: Express): Server {
   // Get schedules for a specific date
@@ -362,6 +370,32 @@ export function registerRoutes(app: Express): Server {
 
       const recommendations = await getScheduleRecommendations(schedulesList, date);
       res.json(recommendations);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Analyze optimal time block intervals
+  app.post("/api/schedules/analyze-intervals", async (req, res, next) => {
+    try {
+      const { schedule, userPreferences } = req.body;
+      if (!schedule) {
+        return res.status(400).json({ message: "Schedule data is required" });
+      }
+
+      const date = new Date(schedule.startTime);
+      const dayStart = startOfDay(date);
+      const dayEnd = endOfDay(date);
+
+      const existingSchedules = await db.query.schedules.findMany({
+        where: and(
+          gte(schedules.startTime, dayStart),
+          lte(schedules.startTime, dayEnd)
+        )
+      });
+
+      const analysis = await analyzeOptimalIntervals(schedule, existingSchedules, userPreferences);
+      res.json(analysis);
     } catch (error) {
       next(error);
     }

@@ -43,6 +43,23 @@ interface TimeBlockAnalysis {
   };
 }
 
+interface TimeBlockInterval {
+  recommendedInterval: number; 
+  minInterval: number; 
+  maxInterval: number; 
+  reasoning: string; 
+  factors: {
+    physiological: string[]; 
+    productivity: string[]; 
+    workStyle: string[]; 
+  };
+  adjustments: Array<{
+    condition: string; 
+    intervalAdjustment: number; 
+    reason: string; 
+  }>;
+}
+
 export async function analyzeTimeBlock(
   schedule: Schedule,
   existingSchedules: Schedule[]
@@ -339,7 +356,6 @@ export async function analyzePriority(
     }
 
     const data = await response.json();
-    // 直接使用返回的content，不再进行额外的JSON.parse
     const result = data.choices[0].message.content;
 
     if (!result.priority || !result.explanation) {
@@ -349,7 +365,6 @@ export async function analyzePriority(
     return result;
   } catch (error) {
     console.error("Priority analysis failed:", error);
-    // 如果AI分析失败，返回默认优先级
     return {
       priority: "normal",
       explanation: "由于AI分析暂时不可用，已设置为默认优先级。您可以手动修改优先级。"
@@ -491,4 +506,134 @@ interface ProductivityAdvice {
   productivity: string;
   health: string;
   score: number;
+}
+
+export async function analyzeOptimalIntervals(
+  schedule: Schedule,
+  existingSchedules: Schedule[],
+  userPreferences?: {
+    preferredWorkDuration?: number;
+    preferredBreakDuration?: number;
+    energyPeakHours?: number[];
+  }
+): Promise<TimeBlockInterval> {
+  if (!process.env.DEEPSEEK_API_KEY) {
+    throw new Error("Missing DEEPSEEK_API_KEY");
+  }
+
+  try {
+    const context = {
+      schedule: {
+        title: schedule.title,
+        description: schedule.remarks || "",
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        category: schedule.timeBlockCategory,
+        efficiency: schedule.timeBlockEfficiency,
+      },
+      existingSchedules: existingSchedules.map(s => ({
+        title: s.title,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        category: s.timeBlockCategory,
+        efficiency: s.timeBlockEfficiency,
+      })),
+      userPreferences,
+      currentTime: new Date().toISOString(),
+    };
+
+    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [
+          { 
+            role: "system", 
+            content: `你是一个专业的时间管理专家，需要分析并推荐最佳的时间块间隔。分析维度包括：
+
+1. 时间块特征：
+   - 任务类型和性质
+   - 持续时间
+   - 精力要求
+   - 专注度需求
+
+2. 生理因素：
+   - 人体生理节律
+   - 注意力持续周期
+   - 疲劳恢复规律
+   - 能量水平变化
+
+3. 工作效率：
+   - 任务切换成本
+   - 注意力恢复时间
+   - 效率峰值时段
+   - 休息效果评估
+
+4. 个性化调整：
+   - 个人工作习惯
+   - 能量管理模式
+   - 休息偏好
+   - 环境影响因素
+
+返回JSON格式：
+{
+  "recommendedInterval": "建议间隔时间(分钟)",
+  "minInterval": "最小建议间隔(分钟)",
+  "maxInterval": "最大建议间隔(分钟)",
+  "reasoning": "推荐原因说明",
+  "factors": {
+    "physiological": ["生理因素数组"],
+    "productivity": ["生产力因素数组"],
+    "workStyle": ["工作风格因素数组"]
+  },
+  "adjustments": [
+    {
+      "condition": "适用条件",
+      "intervalAdjustment": "间隔调整(分钟)",
+      "reason": "调整原因"
+    }
+  ]
+}`
+          },
+          { 
+            role: "user", 
+            content: JSON.stringify(context)
+          }
+        ],
+        temperature: 0.2,
+        max_tokens: 1000,
+        response_format: { type: "json_object" }
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    let intervalAnalysis: TimeBlockInterval;
+
+    try {
+      intervalAnalysis = JSON.parse(data.choices[0].message.content);
+      if (
+        typeof intervalAnalysis.recommendedInterval !== 'number' ||
+        typeof intervalAnalysis.minInterval !== 'number' ||
+        typeof intervalAnalysis.maxInterval !== 'number'
+      ) {
+        throw new Error("Invalid interval analysis format received from AI");
+      }
+    } catch (e) {
+      console.error("Failed to parse AI interval analysis:", data.choices[0].message.content);
+      throw new Error("Failed to parse AI response");
+    }
+
+    return intervalAnalysis;
+  } catch (error) {
+    console.error("Interval analysis failed:", error);
+    throw new Error("Failed to analyze optimal intervals");
+  }
 }
