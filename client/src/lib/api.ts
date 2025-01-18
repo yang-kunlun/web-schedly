@@ -46,7 +46,13 @@ export async function checkScheduleConflicts(schedule: Partial<Schedule>) {
       "Content-Type": "application/json",
     },
     credentials: "include",
-    body: JSON.stringify({ schedule }),
+    body: JSON.stringify({ 
+      schedule: {
+        ...schedule,
+        startTime: schedule.startTime?.toISOString(),
+        endTime: schedule.endTime?.toISOString()
+      } 
+    }),
   });
 
   if (!response.ok) {
@@ -76,12 +82,26 @@ export async function createSchedule(schedule: Omit<Schedule, "id" | "createdAt"
       "Content-Type": "application/json",
     },
     credentials: "include",
-    body: JSON.stringify(schedule),
+    body: JSON.stringify({
+      ...schedule,
+      startTime: schedule.startTime.toISOString(),
+      endTime: schedule.endTime.toISOString(),
+    }),
   });
+
   if (!response.ok) {
-    throw new Error("Failed to create schedule");
+    const errorText = await response.text();
+    throw new Error(`Failed to create schedule: ${errorText}`);
   }
-  return response.json();
+
+  const data = await response.json();
+  return {
+    ...data,
+    startTime: new Date(data.startTime),
+    endTime: new Date(data.endTime),
+    createdAt: new Date(data.createdAt),
+    updatedAt: new Date(data.updatedAt),
+  };
 }
 
 export async function updateSchedule(id: number, schedule: Partial<Schedule>) {
@@ -91,12 +111,26 @@ export async function updateSchedule(id: number, schedule: Partial<Schedule>) {
       "Content-Type": "application/json",
     },
     credentials: "include",
-    body: JSON.stringify(schedule),
+    body: JSON.stringify({
+      ...schedule,
+      startTime: schedule.startTime?.toISOString(),
+      endTime: schedule.endTime?.toISOString(),
+    }),
   });
+
   if (!response.ok) {
-    throw new Error("Failed to update schedule");
+    const errorText = await response.text();
+    throw new Error(`Failed to update schedule: ${errorText}`);
   }
-  return response.json();
+
+  const data = await response.json();
+  return {
+    ...data,
+    startTime: new Date(data.startTime),
+    endTime: new Date(data.endTime),
+    createdAt: new Date(data.createdAt),
+    updatedAt: new Date(data.updatedAt),
+  };
 }
 
 export async function deleteSchedule(id: number) {
@@ -105,6 +139,7 @@ export async function deleteSchedule(id: number) {
     credentials: "include",
   });
   if (!response.ok) {
-    throw new Error("Failed to delete schedule");
+    const errorText = await response.text();
+    throw new Error(`Failed to delete schedule: ${errorText}`);
   }
 }

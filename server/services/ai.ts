@@ -10,6 +10,141 @@ interface ScheduleSuggestion {
   priority?: "high" | "normal" | "low";
 }
 
+interface TimeBlockAnalysis {
+  category: "work" | "meeting" | "break" | "focus" | "other";
+  efficiencyScore: number;
+  priorityScore: number;
+  suggestions: {
+    optimization: string[];
+    timing: string[];
+    breaks: string[];
+  };
+  factors: {
+    positive: string[];
+    negative: string[];
+  };
+}
+
+export async function analyzeTimeBlock(
+  schedule: Schedule,
+  existingSchedules: Schedule[]
+): Promise<TimeBlockAnalysis> {
+  if (!process.env.DEEPSEEK_API_KEY) {
+    throw new Error("Missing DEEPSEEK_API_KEY");
+  }
+
+  try {
+    const context = {
+      schedule: {
+        title: schedule.title,
+        description: schedule.remarks || "",
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        location: schedule.location,
+      },
+      existingSchedules: existingSchedules.map(s => ({
+        title: s.title,
+        description: s.remarks || "",
+        startTime: s.startTime,
+        endTime: s.endTime,
+        category: s.timeBlockCategory,
+        efficiency: s.timeBlockEfficiency,
+      })),
+      currentTime: new Date().toISOString(),
+    };
+
+    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [
+          { 
+            role: "system", 
+            content: `你是一个专业的时间块分析专家。返回格式：
+{
+  "category": "work" | "meeting" | "break" | "focus" | "other",
+  "efficiencyScore": number,
+  "priorityScore": number,
+  "suggestions": {
+    "optimization": string[],
+    "timing": string[],
+    "breaks": string[]
+  },
+  "factors": {
+    "positive": string[],
+    "negative": string[]
+  }
+}`
+          },
+          { 
+            role: "user", 
+            content: JSON.stringify(context)
+          }
+        ],
+        temperature: 0.2,
+        max_tokens: 1000,
+        response_format: { type: "json_object" }
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const analysis = data.choices[0].message.content;
+
+    // 如果返回的是字符串，尝试解析为JSON
+    const result = typeof analysis === 'string' ? JSON.parse(analysis) : analysis;
+
+    // 验证响应格式
+    if (!result || typeof result.category !== 'string' || 
+        typeof result.efficiencyScore !== 'number' || 
+        typeof result.priorityScore !== 'number' ||
+        !result.suggestions || !result.factors) {
+      console.error("Invalid analysis format:", result);
+      // 返回默认值而不是抛出错误
+      return {
+        category: "other",
+        efficiencyScore: 50,
+        priorityScore: 50,
+        suggestions: {
+          optimization: ["暂时无法提供优化建议"],
+          timing: ["暂时无法提供时间建议"],
+          breaks: ["暂时无法提供休息建议"]
+        },
+        factors: {
+          positive: ["数据分析暂时不可用"],
+          negative: ["请稍后重试"]
+        }
+      };
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Time block analysis failed:", error);
+    // 返回默认值而不是抛出错误
+    return {
+      category: "other",
+      efficiencyScore: 50,
+      priorityScore: 50,
+      suggestions: {
+        optimization: ["分析服务暂时不可用"],
+        timing: ["请稍后重试"],
+        breaks: ["系统将稍后自动重试"]
+      },
+      factors: {
+        positive: ["正在恢复服务"],
+        negative: ["暂时无法获取分析结果"]
+      }
+    };
+  }
+}
+
 interface ScheduleRecommendation {
   title: string;
   suggestedStartTime: string;
@@ -58,121 +193,6 @@ interface TimeBlockInterval {
     intervalAdjustment: number; 
     reason: string; 
   }>;
-}
-
-export async function analyzeTimeBlock(
-  schedule: Schedule,
-  existingSchedules: Schedule[]
-): Promise<TimeBlockAnalysis> {
-  if (!process.env.DEEPSEEK_API_KEY) {
-    throw new Error("Missing DEEPSEEK_API_KEY");
-  }
-
-  try {
-    const context = {
-      schedule: {
-        title: schedule.title,
-        description: schedule.remarks || "",
-        startTime: schedule.startTime,
-        endTime: schedule.endTime,
-        location: schedule.location,
-      },
-      existingSchedules: existingSchedules.map(s => ({
-        title: s.title,
-        description: s.remarks || "",
-        startTime: s.startTime,
-        endTime: s.endTime,
-        category: s.timeBlockCategory,
-        efficiency: s.timeBlockEfficiency,
-      })),
-      currentTime: new Date().toISOString(),
-    };
-
-    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "deepseek-chat",
-        messages: [
-          { 
-            role: "system", 
-            content: `你是一个专业的时间块分析专家，需要对时间块进行全面分析并提供优化建议。分析维度包括：
-
-1. 时间块分类：
-   - 工作任务 (work)
-   - 会议安排 (meeting)
-   - 休息时间 (break)
-   - 专注时段 (focus)
-   - 其他活动 (other)
-
-2. 效率评估：
-   - 时段适合度
-   - 持续时间合理性
-   - 与其他时间块的关联
-   - 人体生理规律匹配度
-
-3. 优先级评分：
-   - 任务重要性
-   - 时间紧迫性
-   - 对其他时间块的影响
-   - 资源依赖程度
-
-4. 优化建议：
-   - 时间调整建议
-   - 效率提升方案
-   - 休息安排优化
-   - 时间块整合建议
-
-返回JSON格式：
-{
-  "category": "work" | "meeting" | "break" | "focus" | "other",
-  "efficiencyScore": "效率得分(0-100)",
-  "priorityScore": "优先级得分(0-100)",
-  "suggestions": {
-    "optimization": ["优化建议数组"],
-    "timing": ["时间调整建议"],
-    "breaks": ["休息安排建议"]
-  },
-  "factors": {
-    "positive": ["积极因素"],
-    "negative": ["消极因素"]
-  }
-}`
-          },
-          { 
-            role: "user", 
-            content: JSON.stringify(context)
-          }
-        ],
-        temperature: 0.2,
-        max_tokens: 1000,
-        response_format: { type: "json_object" }
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    const analysis = data.choices[0].message.content;
-
-    // 验证响应格式
-    if (typeof analysis !== 'object' || !analysis.category || 
-        typeof analysis.efficiencyScore !== 'number' || 
-        typeof analysis.priorityScore !== 'number') {
-      console.error("Invalid analysis format:", analysis);
-      throw new Error("Invalid analysis format received from AI");
-    }
-
-    return analysis;
-  } catch (error) {
-    console.error("Time block analysis failed:", error);
-    throw new Error("Failed to analyze time block");
-  }
 }
 
 export async function getScheduleRecommendations(
@@ -312,7 +332,7 @@ export async function analyzePriority(
             3. 上下文关联：与其他日程的依赖关系
             4. 资源投入：所需时间和精力
             5. 影响范围：对其他任务、个人目标的影响
-
+            
             基于以上因素，为日程分配优先级(high/normal/low)并提供分析说明。
             返回格式：{"priority": "high" | "normal" | "low", "explanation": "分析说明"}`
           },
@@ -384,7 +404,7 @@ export async function getProductivityAdvice(schedules: Schedule[]): Promise<Prod
             2. 时间分配：各类任务的时间分配是否均衡
             3. 生产效率：任务完成情况和效率
             4. 健康建议：工作与休息的平衡
-
+            
             返回JSON格式：{
               "summary": "总体评估",
               "timeBalance": "时间分配建议",
@@ -484,7 +504,6 @@ export async function analyzeOptimalIntervals(
           { 
             role: "system", 
             content: `你是一个专业的时间管理专家，需要分析并推荐最佳的时间块间隔。分析维度包括：
-
 1. 时间块特征：
    - 任务类型和性质
    - 持续时间
