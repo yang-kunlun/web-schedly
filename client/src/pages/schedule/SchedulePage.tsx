@@ -293,6 +293,7 @@ export default function SchedulePage() {
                 <CalendarView
                   schedules={schedules}
                   onDateSelect={setCurrentDate}
+                  selectedDate={currentDate}
                 />
               </motion.div>
 

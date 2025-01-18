@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DayPicker } from "react-day-picker";
 import { zhCN } from 'date-fns/locale';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
@@ -32,6 +32,13 @@ type ViewMode = "week" | "month" | "year";
 export function CalendarView({ schedules, onDateSelect, selectedDate }: CalendarViewProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("month");
   const [currentDate, setCurrentDate] = useState<Date>(selectedDate || new Date());
+
+  // When selectedDate prop changes, update currentDate
+  useEffect(() => {
+    if (selectedDate) {
+      setCurrentDate(selectedDate);
+    }
+  }, [selectedDate]);
 
   // 根据视图模式获取日期范围
   const getDateRange = (date: Date, mode: ViewMode) => {
@@ -148,21 +155,33 @@ export function CalendarView({ schedules, onDateSelect, selectedDate }: Calendar
               locale={zhCN}
               showOutsideDays
               modifiers={{
-                selected: (date) => format(currentDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
+                selected: (date) => format(currentDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd'),
+                today: (date) => format(new Date(), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
               }}
               modifiersStyles={{
-                selected: { backgroundColor: 'rgb(249, 115, 22)', color: 'white', borderRadius: '0.5rem' }
+                selected: {
+                  backgroundColor: 'rgb(249, 115, 22)',
+                  color: 'white',
+                  borderRadius: '0.5rem',
+                  transform: 'scale(1.05)',
+                  transition: 'all 0.2s ease'
+                },
+                today: {
+                  border: '2px solid rgb(249, 115, 22)',
+                  borderRadius: '0.5rem',
+                  color: 'rgb(249, 115, 22)'
+                }
               }}
               components={{
                 Day: ({ date, selected, disabled }) => (
                   <div
                     className={cn(
-                      "relative w-9 h-9 p-0",
-                      selected && "bg-orange-500 text-white rounded-lg",
-                      !selected && date.getDate() === new Date().getDate() && 
-                      date.getMonth() === new Date().getMonth() && 
-                      date.getFullYear() === new Date().getFullYear() && 
-                      "bg-orange-100 rounded-lg"
+                      "relative w-9 h-9 p-0 cursor-pointer",
+                      "transition-all duration-200 ease-in-out",
+                      "hover:bg-orange-100 hover:scale-105",
+                      selected && "bg-orange-500 text-white rounded-lg shadow-md",
+                      !selected && format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd') && 
+                      "bg-orange-100 rounded-lg border-2 border-orange-500"
                     )}
                   >
                     <div className="absolute inset-0 flex items-center justify-center">
