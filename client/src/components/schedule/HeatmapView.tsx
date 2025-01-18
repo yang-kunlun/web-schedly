@@ -8,9 +8,10 @@ import { cn } from "@/lib/utils";
 interface HeatmapViewProps {
   schedules: Schedule[];
   currentDate: Date;
+  onDateSelect?: (date: Date) => void;
 }
 
-export function HeatmapView({ schedules, currentDate }: HeatmapViewProps) {
+export function HeatmapView({ schedules, currentDate, onDateSelect }: HeatmapViewProps) {
   const startDate = startOfWeek(currentDate, { locale: zhCN });
   const endDate = endOfWeek(currentDate, { locale: zhCN });
   const days = eachDayOfInterval({ start: startDate, end: endDate });
@@ -40,18 +41,19 @@ export function HeatmapView({ schedules, currentDate }: HeatmapViewProps) {
     <div className="p-6">
       <div className="mb-4">
         <h3 className="text-lg font-semibold text-gray-900">本周日程活跃度</h3>
-        <p className="text-sm text-gray-500">深色表示日程较多的日子</p>
+        <p className="text-sm text-gray-500">深色表示日程较多的日子，点击日期可切换视图</p>
       </div>
       <div className="grid grid-cols-7 gap-2">
         {scheduleCounts.map(({ day, count }) => (
           <Card
             key={day.toString()}
             className={cn(
-              "aspect-square flex flex-col items-center justify-center p-2 transition-colors",
+              "aspect-square flex flex-col items-center justify-center p-2 transition-colors cursor-pointer hover:ring-2 hover:ring-orange-300",
               getIntensity(count),
               isEqual(day.setHours(0,0,0,0), currentDate.setHours(0,0,0,0)) && "ring-2 ring-orange-500",
               !isSameMonth(day, currentDate) && "opacity-50"
             )}
+            onClick={() => onDateSelect?.(day)}
           >
             <span className="text-sm font-medium">{format(day, "d")}</span>
             <span className="text-xs text-gray-500">{count} 项</span>

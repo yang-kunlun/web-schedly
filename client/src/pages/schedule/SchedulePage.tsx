@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, RefreshCw } from "lucide-react";
 import { Schedule } from "@/types/schedule";
 import { getSchedules, createSchedule, updateSchedule, deleteSchedule } from "@/lib/api";
-import { startOfWeek, addDays } from "date-fns";
+import { startOfWeek, addDays, format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { ProductivityAdvice } from "@/components/schedule/ProductivityAdvice";
@@ -52,7 +52,7 @@ function SyncStatus({ isConnected, lastSyncTime }: { isConnected: boolean; lastS
           上次同步: {lastSyncTime.toLocaleTimeString()}
         </span>
       )}
-      <RefreshCw 
+      <RefreshCw
         className={`h-4 w-4 ${isConnected ? 'text-green-500' : 'text-red-500'} ${isConnected && 'animate-spin'}`}
       />
     </div>
@@ -69,13 +69,21 @@ export default function SchedulePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const weekDays = Array.from({ length: 7 }, (_, i) =>
-    addDays(startOfWeek(currentDate), i)
+  const weekDays = useMemo(() =>
+    Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(currentDate), i)),
+    [currentDate]
+  );
+
+  // 更新查询键以包含格式化的日期
+  const queryKey = useMemo(() =>
+    ["/api/schedules", format(currentDate, "yyyy-MM-dd")],
+    [currentDate]
   );
 
   const { data: schedules = [], isLoading } = useQuery({
-    queryKey: ["/api/schedules", currentDate.toISOString()],
+    queryKey,
     queryFn: () => getSchedules(currentDate),
+    staleTime: 0, // 确保数据始终重新获取
   });
 
   const sortedSchedules = useMemo(() =>
@@ -91,10 +99,12 @@ export default function SchedulePage() {
   const createMutation = useMutation({
     mutationFn: createSchedule,
     onSuccess: () => {
-      // 使所有相关查询缓存失效
+      // 使所有相关查询缓存失效，包括当前日期的查询
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
+      queryClient.invalidateQueries({ queryKey: queryKey });
       queryClient.invalidateQueries({ queryKey: ["/api/schedules/recommendations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/schedules/advice"] });
+
       toast({
         title: "日程创建成功",
         description: "您的日程已成功创建并自动进行了优先级分析。",
@@ -114,10 +124,11 @@ export default function SchedulePage() {
     mutationFn: ({ id, data }: { id: number; data: Partial<Schedule> }) =>
       updateSchedule(id, data),
     onSuccess: () => {
-      // 使所有相关查询缓存失效
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
+      queryClient.invalidateQueries({ queryKey: queryKey });
       queryClient.invalidateQueries({ queryKey: ["/api/schedules/recommendations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/schedules/advice"] });
+
       toast({
         title: "日程更新成功",
         description: "您的日程已成功更新，优先级已重新分析。",
@@ -136,10 +147,11 @@ export default function SchedulePage() {
   const deleteMutation = useMutation({
     mutationFn: deleteSchedule,
     onSuccess: () => {
-      // 使所有相关查询缓存失效
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
+      queryClient.invalidateQueries({ queryKey: queryKey });
       queryClient.invalidateQueries({ queryKey: ["/api/schedules/recommendations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/schedules/advice"] });
+
       toast({
         title: "日程删除成功",
         description: "您的日程已成功删除。",
@@ -165,8 +177,11 @@ export default function SchedulePage() {
     }
   };
 
+  // 更新日期选择处理函数
   const handleDateSelect = (date: Date) => {
     setCurrentDate(date);
+    // 手动触发数据重新获取
+    queryClient.invalidateQueries({ queryKey: ["/api/schedules", format(date, "yyyy-MM-dd")] });
   };
 
   return (
@@ -197,9 +212,9 @@ export default function SchedulePage() {
         <div className="max-w-7xl mx-auto">
           <DateHeader
             currentDate={currentDate}
-            onDateChange={setCurrentDate}
+            onDateChange={handleDateSelect}
             weekDays={weekDays}
-            onSelectDay={setCurrentDate}
+            onSelectDay={handleDateSelect}
           />
         </div>
       </div>
@@ -246,7 +261,11 @@ export default function SchedulePage() {
                   transition={{ delay: 0.2 }}
                   className="bg-white rounded-lg shadow-sm"
                 >
-                  <HeatmapView schedules={schedules} currentDate={currentDate} />
+                  <HeatmapView
+                    schedules={schedules}
+                    currentDate={currentDate}
+                    onDateSelect={handleDateSelect}
+                  />
                 </motion.div>
               </div>
 
