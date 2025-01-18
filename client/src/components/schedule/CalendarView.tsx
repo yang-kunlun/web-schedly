@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DayPicker, type DayProps } from "react-day-picker";
+import { DayPicker } from "react-day-picker";
 import { zhCN } from 'date-fns/locale';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import {
@@ -24,13 +24,14 @@ import {
 interface CalendarViewProps {
   schedules: Schedule[];
   onDateSelect?: (date: Date) => void;
+  selectedDate?: Date;
 }
 
 type ViewMode = "week" | "month" | "year";
 
-export function CalendarView({ schedules, onDateSelect }: CalendarViewProps) {
+export function CalendarView({ schedules, onDateSelect, selectedDate }: CalendarViewProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("month");
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [currentDate, setCurrentDate] = useState<Date>(selectedDate || new Date());
 
   // 根据视图模式获取日期范围
   const getDateRange = (date: Date, mode: ViewMode) => {
@@ -62,7 +63,8 @@ export function CalendarView({ schedules, onDateSelect }: CalendarViewProps) {
   };
 
   // 自定义日期渲染
-  const renderDay = (date: Date) => {
+  const renderDay = (props: { date: Date; selected: boolean; disabled: boolean }) => {
+    const { date, selected, disabled } = props;
     const daySchedules = getDaySchedules(date);
     if (!daySchedules.length) return null;
 
@@ -90,12 +92,12 @@ export function CalendarView({ schedules, onDateSelect }: CalendarViewProps) {
   // 日期选择处理
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
-      setSelectedDate(date);
+      setCurrentDate(date);
       onDateSelect?.(date);
     }
   };
 
-  const dateRange = getDateRange(selectedDate, viewMode);
+  const dateRange = getDateRange(currentDate, viewMode);
 
   return (
     <Card>
@@ -141,30 +143,38 @@ export function CalendarView({ schedules, onDateSelect }: CalendarViewProps) {
           >
             <DayPicker
               mode="single"
-              selected={selectedDate}
+              selected={currentDate}
               onSelect={handleDateSelect}
               locale={zhCN}
               showOutsideDays
+              modifiers={{
+                selected: (date) => format(currentDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
+              }}
+              modifiersStyles={{
+                selected: { backgroundColor: 'rgb(249, 115, 22)', color: 'white', borderRadius: '0.5rem' }
+              }}
               components={{
-                Day: ({ date, ...props }: DayProps) => (
+                Day: ({ date, selected, disabled }) => (
                   <div
                     className={cn(
                       "relative w-9 h-9 p-0",
-                      props.selected && "bg-orange-500 text-white rounded-lg",
-                      !props.selected && props.isToday && "bg-orange-100 rounded-lg"
+                      selected && "bg-orange-500 text-white rounded-lg",
+                      !selected && date.getDate() === new Date().getDate() && 
+                      date.getMonth() === new Date().getMonth() && 
+                      date.getFullYear() === new Date().getFullYear() && 
+                      "bg-orange-100 rounded-lg"
                     )}
-                    {...props}
                   >
                     <div className="absolute inset-0 flex items-center justify-center">
                       {format(date, "d")}
                     </div>
-                    {renderDay(date)}
+                    {renderDay({ date, selected, disabled })}
                   </div>
                 ),
               }}
               fromDate={dateRange.from}
               toDate={dateRange.to}
-              defaultMonth={selectedDate}
+              defaultMonth={currentDate}
               footer={
                 <div className="mt-4 text-sm text-gray-500 space-y-2">
                   <div className="flex items-center gap-2">
