@@ -28,6 +28,138 @@ interface ScheduleRecommendation {
   }>;
 }
 
+interface TimeBlockAnalysis {
+  category: "work" | "meeting" | "break" | "focus" | "other";
+  efficiencyScore: number;
+  priorityScore: number;
+  suggestions: {
+    optimization: string[];
+    timing: string[];
+    breaks: string[];
+  };
+  factors: {
+    positive: string[];
+    negative: string[];
+  };
+}
+
+export async function analyzeTimeBlock(
+  schedule: Schedule,
+  existingSchedules: Schedule[]
+): Promise<TimeBlockAnalysis> {
+  if (!process.env.DEEPSEEK_API_KEY) {
+    throw new Error("Missing DEEPSEEK_API_KEY");
+  }
+
+  try {
+    const context = {
+      schedule: {
+        title: schedule.title,
+        description: schedule.remarks || "",
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        location: schedule.location,
+      },
+      existingSchedules: existingSchedules.map(s => ({
+        title: s.title,
+        description: s.remarks || "",
+        startTime: s.startTime,
+        endTime: s.endTime,
+        category: s.timeBlockCategory,
+        efficiency: s.timeBlockEfficiency,
+      })),
+      currentTime: new Date().toISOString(),
+    };
+
+    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [
+          { 
+            role: "system", 
+            content: `你是一个专业的时间块分析专家，需要对时间块进行全面分析并提供优化建议。分析维度包括：
+
+1. 时间块分类：
+   - 工作任务 (work)
+   - 会议安排 (meeting)
+   - 休息时间 (break)
+   - 专注时段 (focus)
+   - 其他活动 (other)
+
+2. 效率评估：
+   - 时段适合度
+   - 持续时间合理性
+   - 与其他时间块的关联
+   - 人体生理规律匹配度
+
+3. 优先级评分：
+   - 任务重要性
+   - 时间紧迫性
+   - 对其他时间块的影响
+   - 资源依赖程度
+
+4. 优化建议：
+   - 时间调整建议
+   - 效率提升方案
+   - 休息安排优化
+   - 时间块整合建议
+
+返回JSON格式：
+{
+  "category": "work" | "meeting" | "break" | "focus" | "other",
+  "efficiencyScore": "效率得分(0-100)",
+  "priorityScore": "优先级得分(0-100)",
+  "suggestions": {
+    "optimization": ["优化建议数组"],
+    "timing": ["时间调整建议"],
+    "breaks": ["休息安排建议"]
+  },
+  "factors": {
+    "positive": ["积极因素"],
+    "negative": ["消极因素"]
+  }
+}`
+          },
+          { 
+            role: "user", 
+            content: JSON.stringify(context)
+          }
+        ],
+        temperature: 0.2,
+        max_tokens: 1000,
+        response_format: { type: "json_object" }
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    let analysis: TimeBlockAnalysis;
+
+    try {
+      analysis = JSON.parse(data.choices[0].message.content);
+      if (!analysis.category || typeof analysis.efficiencyScore !== 'number' || typeof analysis.priorityScore !== 'number') {
+        throw new Error("Invalid analysis format received from AI");
+      }
+    } catch (e) {
+      console.error("Failed to parse AI analysis:", data.choices[0].message.content);
+      throw new Error("Failed to parse AI response");
+    }
+
+    return analysis;
+  } catch (error) {
+    console.error("Time block analysis failed:", error);
+    throw new Error("Failed to analyze time block");
+  }
+}
+
 export async function getScheduleRecommendations(
   schedules: Schedule[],
   date: Date

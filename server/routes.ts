@@ -4,13 +4,14 @@ import { schedules, type Schedule } from "@db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { startOfDay, endOfDay } from "date-fns";
 import { log } from "./vite";
-import { analyzeSchedule, getProductivityAdvice, analyzePriority, getScheduleRecommendations } from "./services/ai";
+import { analyzeSchedule, getProductivityAdvice, analyzePriority, getScheduleRecommendations, analyzeTimeBlock } from "./services/ai";
 import { detectScheduleConflicts } from "./services/schedule-conflict";
 import { getNotificationService } from "./services/notification";
 import fs from "fs/promises";
 import path from "path";
+import {createServer} from 'http'
 
-export function registerRoutes(app: Express): void {
+export function registerRoutes(app: Express): Server {
   // Get schedules for a specific date
   app.get("/api/schedules", async (req, res, next) => {
     try {
@@ -103,7 +104,33 @@ export function registerRoutes(app: Express): void {
     }
   });
 
-  // Create a new schedule with priority analysis
+  // Analyze time block
+  app.post("/api/schedules/analyze-timeblock", async (req, res, next) => {
+    try {
+      const { schedule } = req.body;
+      if (!schedule) {
+        return res.status(400).json({ message: "Schedule data is required" });
+      }
+
+      const date = new Date(schedule.startTime);
+      const dayStart = startOfDay(date);
+      const dayEnd = endOfDay(date);
+
+      const existingSchedules = await db.query.schedules.findMany({
+        where: and(
+          gte(schedules.startTime, dayStart),
+          lte(schedules.startTime, dayEnd)
+        )
+      });
+
+      const analysis = await analyzeTimeBlock(schedule, existingSchedules);
+      res.json(analysis);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Create a new schedule with priority analysis and time block analysis
   app.post("/api/schedules", async (req, res, next) => {
     try {
       const newSchedule = req.body as Omit<Schedule, "id" | "createdAt" | "updatedAt">;
@@ -120,8 +147,13 @@ export function registerRoutes(app: Express): void {
       });
 
       const conflicts = detectScheduleConflicts(newSchedule, existingSchedules);
-
       const priorityAnalysis = await analyzePriority(
+        { ...newSchedule, id: -1 } as Schedule,
+        existingSchedules
+      );
+
+      // Add time block analysis
+      const timeBlockAnalysis = await analyzeTimeBlock(
         { ...newSchedule, id: -1 } as Schedule,
         existingSchedules
       );
@@ -130,6 +162,10 @@ export function registerRoutes(app: Express): void {
         ...newSchedule,
         conflictInfo: conflicts.hasConflict ? conflicts : null,
         priority: priorityAnalysis.priority,
+        timeBlockCategory: timeBlockAnalysis.category,
+        timeBlockEfficiency: timeBlockAnalysis.efficiencyScore,
+        timeBlockPriority: timeBlockAnalysis.priorityScore,
+        aiSuggestions: timeBlockAnalysis.suggestions,
       };
 
       const created = await db
@@ -141,20 +177,20 @@ export function registerRoutes(app: Express): void {
         })
         .returning();
 
-      // 发送创建通知
       getNotificationService().notifyScheduleCreated(created[0].title);
 
       res.status(201).json({
         schedule: created[0],
         conflicts,
-        priorityAnalysis
+        priorityAnalysis,
+        timeBlockAnalysis
       });
     } catch (error) {
       next(error);
     }
   });
 
-  // Update a schedule with priority analysis
+  // Update a schedule with priority analysis and time block analysis
   app.patch("/api/schedules/:id", async (req, res, next) => {
     try {
       const { id } = req.params;
@@ -163,9 +199,9 @@ export function registerRoutes(app: Express): void {
       }
 
       const updateData = req.body as Partial<Schedule>;
-
       let conflicts = null;
       let priorityAnalysis = null;
+      let timeBlockAnalysis = null;
 
       if (updateData.startTime || updateData.endTime || updateData.title || updateData.remarks) {
         const date = new Date(updateData.startTime || new Date());
@@ -179,24 +215,37 @@ export function registerRoutes(app: Express): void {
           )
         });
 
-        if (updateData.startTime || updateData.endTime) {
-          conflicts = detectScheduleConflicts(
-            { ...updateData, id: parseInt(id) } as Schedule,
-            existingSchedules
-          );
-          updateData.conflictInfo = conflicts.hasConflict ? conflicts : null;
-        }
-
         const currentSchedule = await db.query.schedules.findFirst({
           where: eq(schedules.id, parseInt(id))
         });
 
         if (currentSchedule) {
+          const updatedSchedule = { ...currentSchedule, ...updateData } as Schedule;
+
+          if (updateData.startTime || updateData.endTime) {
+            conflicts = detectScheduleConflicts(
+              updatedSchedule,
+              existingSchedules.filter(s => s.id !== parseInt(id))
+            );
+            updateData.conflictInfo = conflicts.hasConflict ? conflicts : null;
+          }
+
           priorityAnalysis = await analyzePriority(
-            { ...currentSchedule, ...updateData } as Schedule,
+            updatedSchedule,
             existingSchedules.filter(s => s.id !== parseInt(id))
           );
           updateData.priority = priorityAnalysis.priority;
+
+          // Add time block analysis
+          timeBlockAnalysis = await analyzeTimeBlock(
+            updatedSchedule,
+            existingSchedules.filter(s => s.id !== parseInt(id))
+          );
+
+          updateData.timeBlockCategory = timeBlockAnalysis.category;
+          updateData.timeBlockEfficiency = timeBlockAnalysis.efficiencyScore;
+          updateData.timeBlockPriority = timeBlockAnalysis.priorityScore;
+          updateData.aiSuggestions = timeBlockAnalysis.suggestions;
         }
       }
 
@@ -215,13 +264,13 @@ export function registerRoutes(app: Express): void {
         return res.status(404).json({ message: "Schedule not found" });
       }
 
-      // 发送更新通知
       getNotificationService().notifyScheduleUpdated(updatedSchedule[0].title);
 
       res.json({
         schedule: updatedSchedule[0],
         conflicts,
-        priorityAnalysis
+        priorityAnalysis,
+        timeBlockAnalysis
       });
     } catch (error) {
       next(error);
@@ -317,4 +366,7 @@ export function registerRoutes(app: Express): void {
       next(error);
     }
   });
+
+  const httpServer = createServer(app);
+  return httpServer;
 }
