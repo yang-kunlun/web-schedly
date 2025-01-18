@@ -158,16 +158,14 @@ export async function analyzeTimeBlock(
     }
 
     const data = await response.json();
-    let analysis: TimeBlockAnalysis;
+    const analysis = data.choices[0].message.content;
 
-    try {
-      analysis = JSON.parse(data.choices[0].message.content);
-      if (!analysis.category || typeof analysis.efficiencyScore !== 'number' || typeof analysis.priorityScore !== 'number') {
-        throw new Error("Invalid analysis format received from AI");
-      }
-    } catch (e) {
-      console.error("Failed to parse AI analysis:", data.choices[0].message.content);
-      throw new Error("Failed to parse AI response");
+    // 验证响应格式
+    if (typeof analysis !== 'object' || !analysis.category || 
+        typeof analysis.efficiencyScore !== 'number' || 
+        typeof analysis.priorityScore !== 'number') {
+      console.error("Invalid analysis format:", analysis);
+      throw new Error("Invalid analysis format received from AI");
     }
 
     return analysis;
@@ -212,33 +210,7 @@ export async function getScheduleRecommendations(
         messages: [
           { 
             role: "system", 
-            content: `你是一个先进的智能日程规划助手，需要基于现有日程提供全面的智能建议。分析维度包括：
-
-1. 时间分配优化：
-   - 识别最佳时间段
-   - 避免日程过于密集
-   - 考虑通勤和准备时间
-   - 提供多个可选时间段
-
-2. 效率最大化：
-   - 高效率时段安排重要任务
-   - 合理分配休息时间
-   - 根据任务类型分配合适时段
-   - 考虑人体生理规律
-
-3. 优先级平衡：
-   - 高优先级任务优先安排
-   - 平衡紧急和重要任务
-   - 考虑任务依赖关系
-   - 预留应急缓冲时间
-
-4. 个性化建议：
-   - 根据过往完成情况
-   - 适应个人工作习惯
-   - 考虑场地和位置因素
-   - 智能分类任务类型
-
-返回JSON数组，每个建议包含：
+            content: `你是一个先进的智能日程规划助手，需要基于现有日程提供建议。返回一个建议数组，每个建议包含：
 {
   "title": "建议的日程标题",
   "suggestedStartTime": "建议的开始时间",
@@ -249,12 +221,7 @@ export async function getScheduleRecommendations(
   "efficiency": {
     "score": "效率评分(0-100)",
     "factors": ["影响效率的因素列表"]
-  },
-  "alternativeSlots": [{
-    "startTime": "备选开始时间",
-    "endTime": "备选结束时间",
-    "benefit": "选择此时间段的好处"
-  }]
+  }
 }`
           },
           { 
@@ -273,17 +240,26 @@ export async function getScheduleRecommendations(
     }
 
     const data = await response.json();
-    let recommendations: ScheduleRecommendation[];
+    const content = data.choices[0].message.content;
 
-    try {
-      recommendations = JSON.parse(data.choices[0].message.content);
-      if (!Array.isArray(recommendations)) {
-        throw new Error("Invalid recommendations format");
-      }
-    } catch (e) {
-      console.error("Failed to parse AI recommendations:", data.choices[0].message.content);
-      throw new Error("Failed to parse AI response");
+    // 验证响应是否为对象
+    if (typeof content !== 'object') {
+      console.error("Invalid response format:", content);
+      throw new Error("Invalid response format from AI");
     }
+
+    // 确保返回的是建议数组
+    const recommendations = content.suggestions || [content];
+
+    // 验证每个建议的格式
+    recommendations.forEach((rec: any, index: number) => {
+      if (!rec.title || !rec.suggestedStartTime || !rec.suggestedEndTime || 
+          !rec.priority || !rec.category || !rec.reasoning || 
+          !rec.efficiency || typeof rec.efficiency.score !== 'number') {
+        console.error(`Invalid recommendation format at index ${index}:`, rec);
+        throw new Error(`Invalid recommendation format at index ${index}`);
+      }
+    });
 
     return recommendations;
   } catch (error) {
@@ -336,7 +312,7 @@ export async function analyzePriority(
             3. 上下文关联：与其他日程的依赖关系
             4. 资源投入：所需时间和精力
             5. 影响范围：对其他任务、个人目标的影响
-            
+
             基于以上因素，为日程分配优先级(high/normal/low)并提供分析说明。
             返回格式：{"priority": "high" | "normal" | "low", "explanation": "分析说明"}`
           },
@@ -356,13 +332,15 @@ export async function analyzePriority(
     }
 
     const data = await response.json();
-    const result = data.choices[0].message.content;
+    const analysis = data.choices[0].message.content;
 
-    if (!result.priority || !result.explanation) {
+    // 验证响应格式
+    if (!analysis.priority || !analysis.explanation) {
+      console.error("Invalid priority analysis format:", analysis);
       throw new Error("Invalid response format");
     }
 
-    return result;
+    return analysis;
   } catch (error) {
     console.error("Priority analysis failed:", error);
     return {
@@ -406,7 +384,7 @@ export async function getProductivityAdvice(schedules: Schedule[]): Promise<Prod
             2. 时间分配：各类任务的时间分配是否均衡
             3. 生产效率：任务完成情况和效率
             4. 健康建议：工作与休息的平衡
-            
+
             返回JSON格式：{
               "summary": "总体评估",
               "timeBalance": "时间分配建议",
@@ -431,67 +409,19 @@ export async function getProductivityAdvice(schedules: Schedule[]): Promise<Prod
     }
 
     const data = await response.json();
-    let advice: ProductivityAdvice;
+    const advice = data.choices[0].message.content;
 
-    try {
-      advice = JSON.parse(data.choices[0].message.content);
-      if (!advice.summary || !advice.timeBalance || !advice.productivity || !advice.health || typeof advice.score !== 'number') {
-        throw new Error("Invalid advice format received from AI");
-      }
-    } catch (e) {
-      console.error("Failed to parse AI advice:", data.choices[0].message.content);
-      throw new Error("Failed to parse AI response");
+    // 验证响应格式
+    if (!advice.summary || !advice.timeBalance || !advice.productivity || 
+        !advice.health || typeof advice.score !== 'number') {
+      console.error("Invalid advice format:", advice);
+      throw new Error("Invalid advice format received from AI");
     }
 
     return advice;
   } catch (error) {
     console.error("AI analysis failed:", error);
     throw new Error("Failed to generate productivity advice");
-  }
-}
-
-export async function analyzeSchedule(description: string): Promise<ScheduleSuggestion> {
-  if (!process.env.DEEPSEEK_API_KEY) {
-    throw new Error("Missing DEEPSEEK_API_KEY");
-  }
-
-  try {
-    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "deepseek-chat",
-        messages: [
-          { role: "system", content: PROMPTS.SCHEDULE_ANALYSIS },
-          { role: "user", content: description }
-        ],
-        temperature: 0.7,
-        max_tokens: 500,
-        response_format: { type: "json_object" }
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    let suggestion: ScheduleSuggestion;
-
-    try {
-      suggestion = JSON.parse(data.choices[0].message.content);
-    } catch (e) {
-      console.error("Failed to parse AI suggestion:", data.choices[0].message.content);
-      throw new Error("Failed to parse AI response");
-    }
-
-    return suggestion;
-  } catch (error) {
-    console.error("AI analysis failed:", error);
-    throw new Error("Failed to analyze schedule with AI");
   }
 }
 
@@ -615,25 +545,68 @@ export async function analyzeOptimalIntervals(
     }
 
     const data = await response.json();
-    let intervalAnalysis: TimeBlockInterval;
+    const analysis = data.choices[0].message.content;
 
-    try {
-      intervalAnalysis = JSON.parse(data.choices[0].message.content);
-      if (
-        typeof intervalAnalysis.recommendedInterval !== 'number' ||
-        typeof intervalAnalysis.minInterval !== 'number' ||
-        typeof intervalAnalysis.maxInterval !== 'number'
-      ) {
-        throw new Error("Invalid interval analysis format received from AI");
-      }
-    } catch (e) {
-      console.error("Failed to parse AI interval analysis:", data.choices[0].message.content);
-      throw new Error("Failed to parse AI response");
+    // 验证响应格式
+    if (typeof analysis !== 'object' || 
+        typeof analysis.recommendedInterval !== 'number' ||
+        typeof analysis.minInterval !== 'number' ||
+        typeof analysis.maxInterval !== 'number' ||
+        !analysis.reasoning ||
+        !analysis.factors ||
+        !Array.isArray(analysis.adjustments)) {
+      console.error("Invalid interval analysis format:", analysis);
+      throw new Error("Invalid interval analysis format received from AI");
     }
 
-    return intervalAnalysis;
+    return analysis;
   } catch (error) {
     console.error("Interval analysis failed:", error);
     throw new Error("Failed to analyze optimal intervals");
+  }
+}
+
+export async function analyzeSchedule(description: string): Promise<ScheduleSuggestion> {
+  if (!process.env.DEEPSEEK_API_KEY) {
+    throw new Error("Missing DEEPSEEK_API_KEY");
+  }
+
+  try {
+    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [
+          { role: "system", content: PROMPTS.SCHEDULE_ANALYSIS },
+          { role: "user", content: description }
+        ],
+        temperature: 0.7,
+        max_tokens: 500,
+        response_format: { type: "json_object" }
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    let suggestion: ScheduleSuggestion;
+
+    try {
+      suggestion = JSON.parse(data.choices[0].message.content);
+    } catch (e) {
+      console.error("Failed to parse AI suggestion:", data.choices[0].message.content);
+      throw new Error("Failed to parse AI response");
+    }
+
+    return suggestion;
+  } catch (error) {
+    console.error("AI analysis failed:", error);
+    throw new Error("Failed to analyze schedule with AI");
   }
 }
