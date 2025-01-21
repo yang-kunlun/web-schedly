@@ -20,12 +20,20 @@ import { createServer } from 'http';
 import { type Server } from "http";
 import { setupAuth } from "./auth";
 
+interface AuthenticatedRequest extends Express.Request {
+  user: {
+    id: number;
+    username: string;
+  };
+  isAuthenticated(): boolean;
+}
+
 export function registerRoutes(app: Express): Server {
   // 设置认证路由和中间件
   setupAuth(app);
 
   // 验证用户是否登录的中间件
-  const requireAuth = (req: any, res: any, next: any) => {
+  const requireAuth = (req: AuthenticatedRequest, res: any, next: any) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "请先登录" });
     }
@@ -33,7 +41,7 @@ export function registerRoutes(app: Express): Server {
   };
 
   // Get schedules for a specific date
-  app.get("/api/schedules", requireAuth, async (req, res, next) => {
+  app.get("/api/schedules", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
     try {
       const date = new Date(req.query.date as string);
       if (isNaN(date.getTime())) {
@@ -59,7 +67,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Check schedule conflicts
-  app.post("/api/schedules/check-conflicts", requireAuth, async (req, res, next) => {
+  app.post("/api/schedules/check-conflicts", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
     try {
       const { schedule } = req.body;
       if (!schedule || !schedule.startTime || !schedule.endTime) {
@@ -86,7 +94,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Get productivity advice
-  app.get("/api/schedules/advice", requireAuth, async (req, res, next) => {
+  app.get("/api/schedules/advice", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
     try {
       const date = new Date(req.query.date as string);
       if (isNaN(date.getTime())) {
@@ -113,7 +121,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Create a new schedule
-  app.post("/api/schedules", requireAuth, async (req, res, next) => {
+  app.post("/api/schedules", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
     try {
       const newSchedule = req.body as Omit<Schedule, "id" | "createdAt" | "updatedAt">;
 
@@ -174,7 +182,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Update a schedule
-  app.patch("/api/schedules/:id", requireAuth, async (req, res, next) => {
+  app.patch("/api/schedules/:id", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
     try {
       const { id } = req.params;
       if (!id || isNaN(parseInt(id))) {
@@ -270,7 +278,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Delete a schedule
-  app.delete("/api/schedules/:id", requireAuth, async (req, res, next) => {
+  app.delete("/api/schedules/:id", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
     try {
       const { id } = req.params;
       if (!id || isNaN(parseInt(id))) {
@@ -301,7 +309,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Theme related routes
-  app.post("/api/theme", requireAuth, async (req, res, next) => {
+  app.post("/api/theme", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
     try {
       const { primary, variant, appearance } = req.body;
       const themeConfigPath = path.resolve(process.cwd(), "theme.json");
@@ -322,7 +330,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Get schedule recommendations
-  app.get("/api/schedules/recommendations", requireAuth, async (req, res, next) => {
+  app.get("/api/schedules/recommendations", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
     try {
       const date = new Date(req.query.date as string);
       if (isNaN(date.getTime())) {
@@ -349,7 +357,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Analyze schedule with AI
-  app.post("/api/schedules/analyze", requireAuth, async (req, res, next) => {
+  app.post("/api/schedules/analyze", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
     try {
       const { description } = req.body;
       if (!description) {
@@ -363,8 +371,8 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-    // Analyze time block
-  app.post("/api/schedules/analyze-timeblock", requireAuth, async (req, res, next) => {
+  // Analyze time block
+  app.post("/api/schedules/analyze-timeblock", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
     try {
       const { schedule } = req.body;
       if (!schedule) {
@@ -392,7 +400,7 @@ export function registerRoutes(app: Express): Server {
 
 
   // Analyze optimal time block intervals
-  app.post("/api/schedules/analyze-intervals", requireAuth, async (req, res, next) => {
+  app.post("/api/schedules/analyze-intervals", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
     try {
       const { schedule, userPreferences } = req.body;
       if (!schedule) {
@@ -418,7 +426,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post("/api/theme/appearance", requireAuth, async (req, res, next) => {
+  app.post("/api/theme/appearance", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
     try {
       const { appearance } = req.body;
       const themeConfigPath = path.resolve(process.cwd(), "theme.json");
@@ -435,7 +443,6 @@ export function registerRoutes(app: Express): Server {
       next(error);
     }
   });
-
 
   const httpServer = createServer(app);
   return httpServer;
