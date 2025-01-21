@@ -37,23 +37,25 @@ async function handleRequest(
 }
 
 async function fetchUser(): Promise<SelectUser | null> {
-  const response = await fetch('/api/user', {
-    credentials: 'include'
-  });
+  try {
+    const response = await fetch('/api/user', {
+      credentials: 'include'
+    });
 
-  if (!response.ok) {
+    // 401 means not logged in, which is a valid state
     if (response.status === 401) {
       return null;
     }
 
-    if (response.status >= 500) {
-      throw new Error(`${response.status}: ${response.statusText}`);
+    if (!response.ok) {
+      throw new Error(`${response.status}: ${await response.text()}`);
     }
 
-    throw new Error(`${response.status}: ${await response.text()}`);
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    return null;
   }
-
-  return response.json();
 }
 
 export function useUser() {
@@ -63,7 +65,10 @@ export function useUser() {
     queryKey: ['user'],
     queryFn: fetchUser,
     staleTime: Infinity,
-    retry: false
+    retry: false,
+    // 添加短暂的超时，避免无限loading
+    networkMode: 'always',
+    gcTime: 0,
   });
 
   const loginMutation = useMutation<RequestResult, Error, InsertUser>({
@@ -76,6 +81,7 @@ export function useUser() {
   const logoutMutation = useMutation<RequestResult, Error>({
     mutationFn: () => handleRequest('/api/logout', 'POST'),
     onSuccess: () => {
+      queryClient.setQueryData(['user'], null);
       queryClient.invalidateQueries({ queryKey: ['user'] });
     },
   });
@@ -89,7 +95,8 @@ export function useUser() {
 
   return {
     user,
-    isLoading,
+    // 只在首次加载时显示loading状态
+    isLoading: isLoading && !error && user === undefined,
     error,
     login: loginMutation.mutateAsync,
     logout: logoutMutation.mutateAsync,
