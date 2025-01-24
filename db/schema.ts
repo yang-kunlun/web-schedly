@@ -1,7 +1,7 @@
 import { pgTable, text, timestamp, boolean, serial, jsonb, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from 'zod';
-import { relations } from 'drizzle-orm';
+import { relations, type InferModel } from 'drizzle-orm';
 
 // 用户表定义
 export const users = pgTable("users", {
@@ -15,7 +15,11 @@ export const users = pgTable("users", {
     theme: 'light' | 'dark' | 'system';
     notifications: boolean;
     defaultView: 'day' | 'week' | 'month';
-  }>(),
+  }>().default({ 
+    theme: 'system', 
+    notifications: true, 
+    defaultView: 'week' 
+  }),
   lastLoginAt: timestamp("last_login_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
@@ -34,7 +38,11 @@ export const schedules = pgTable("schedules", {
   priority: text("priority").default("normal").$type<"high" | "normal" | "low">().notNull(),
   timeBlockCategory: text("time_block_category").$type<"work" | "meeting" | "break" | "focus" | "other">().default("other").notNull(),
   timeBlockEfficiency: integer("time_block_efficiency"),
-  aiSuggestions: jsonb("ai_suggestions"),
+  aiSuggestions: jsonb("ai_suggestions").$type<{
+    recommendation?: string;
+    efficiency?: number;
+    nextActions?: string[];
+  }>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
@@ -64,14 +72,18 @@ export const insertUserSchema = createInsertSchema(users, {
 
 export const selectUserSchema = createSelectSchema(users);
 
-export const insertScheduleSchema = createInsertSchema(schedules);
+export const insertScheduleSchema = createInsertSchema(schedules, {
+  priority: z.enum(['high', 'normal', 'low']),
+  timeBlockCategory: z.enum(['work', 'meeting', 'break', 'focus', 'other']),
+});
+
 export const selectScheduleSchema = createSelectSchema(schedules);
 
 // 导出类型
-export type InsertUser = typeof users.$inferInsert;
-export type SelectUser = typeof users.$inferSelect;
-export type InsertSchedule = typeof schedules.$inferInsert;
-export type SelectSchedule = typeof schedules.$inferSelect;
+export type InsertUser = InferModel<typeof users, "insert">;
+export type SelectUser = InferModel<typeof users, "select">;
+export type InsertSchedule = InferModel<typeof schedules, "insert">;
+export type SelectSchedule = InferModel<typeof schedules, "select">;
 
 // 导出Schedule类型别名方便使用
 export type Schedule = SelectSchedule;
