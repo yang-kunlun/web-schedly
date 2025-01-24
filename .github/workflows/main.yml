@@ -1,0 +1,49 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Type check
+      run: npm run check
+
+    - name: Build
+      run: npm run build
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    - name: Deploy to Replit
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      uses: JamesIves/github-pages-deploy-action@v4
+      with:
+        token: ${{ secrets.REPLIT_DEPLOY_TOKEN }}
+        repository-name: ${{ github.repository }}
+        branch: replit-deploy
+        folder: dist
+        clean: true
+
+    - name: Trigger Replit Deploy
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        curl -X POST "https://api.github.com/repos/${{ github.repository }}/deployments" \
+        -H "Authorization: token ${{ secrets.REPLIT_DEPLOY_TOKEN }}" \
+        -H "Accept: application/vnd.github.v3+json" \
+        -d '{"ref":"replit-deploy","environment":"replit","auto_merge":false}'
