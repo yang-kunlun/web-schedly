@@ -143,3 +143,27 @@ export async function deleteSchedule(id: number) {
     throw new Error(`Failed to delete schedule: ${errorText}`);
   }
 }
+
+export async function analyzeOptimalIntervals(
+  schedule: Schedule,
+  userPreferences?: {
+    preferredWorkDuration?: number;
+    preferredBreakDuration?: number;
+    energyPeakHours?: number[];
+  }
+) {
+  const response = await fetch(`${API_BASE}/schedules/analyze-intervals`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({ schedule, userPreferences }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to analyze optimal intervals");
+  }
+
+  return response.json();
+}

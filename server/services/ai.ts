@@ -179,19 +179,19 @@ interface TimeBlockAnalysis {
 }
 
 interface TimeBlockInterval {
-  recommendedInterval: number; 
-  minInterval: number; 
-  maxInterval: number; 
-  reasoning: string; 
+  recommendedInterval: number; // 建议的时间块间隔（分钟）
+  minInterval: number; // 最小建议间隔
+  maxInterval: number; // 最大建议间隔
+  reasoning: string; // 推荐原因说明
   factors: {
-    physiological: string[]; 
-    productivity: string[]; 
-    workStyle: string[]; 
+    physiological: string[]; // 生理因素
+    productivity: string[]; // 生产力因素
+    workStyle: string[]; // 工作风格因素
   };
   adjustments: Array<{
-    condition: string; 
-    intervalAdjustment: number; 
-    reason: string; 
+    condition: string; // 适用条件
+    intervalAdjustment: number; // 间隔调整（分钟）
+    reason: string; // 调整原因
   }>;
 }
 
