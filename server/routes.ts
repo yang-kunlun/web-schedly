@@ -1,6 +1,6 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { db } from "@db";
-import { schedules, type Schedule } from "@db/schema";
+import { schedules, users, type Schedule, type User } from "@db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
 import { startOfDay, endOfDay } from "date-fns";
 import { log } from "./vite";
@@ -20,11 +20,9 @@ import { createServer } from 'http';
 import { type Server } from "http";
 import { setupAuth } from "./auth";
 
-interface AuthenticatedRequest extends Express.Request {
-  user: {
-    id: number;
-    username: string;
-  };
+// 扩展Request类型以包含认证用户信息
+interface AuthenticatedRequest extends Request {
+  user: User;
   isAuthenticated(): boolean;
 }
 
@@ -33,7 +31,11 @@ export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
   // 验证用户是否登录的中间件
-  const requireAuth = (req: AuthenticatedRequest, res: any, next: any) => {
+  const requireAuth = (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "请先登录" });
     }
@@ -41,7 +43,7 @@ export function registerRoutes(app: Express): Server {
   };
 
   // Get schedules for a specific date
-  app.get("/api/schedules", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
+  app.get("/api/schedules", requireAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const date = new Date(req.query.date as string);
       if (isNaN(date.getTime())) {
@@ -53,7 +55,7 @@ export function registerRoutes(app: Express): Server {
 
       const result = await db.query.schedules.findMany({
         where: and(
-          eq(schedules.userId, req.user.id),
+          eq(schedules.userId, (req.user as User).id),
           gte(schedules.startTime, dayStart),
           lte(schedules.startTime, dayEnd)
         ),
@@ -67,9 +69,9 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Check schedule conflicts
-  app.post("/api/schedules/check-conflicts", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
+  app.post("/api/schedules/check-conflicts", requireAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const { schedule } = req.body;
+      const { schedule } = req.body as { schedule: Partial<Schedule> };
       if (!schedule || !schedule.startTime || !schedule.endTime) {
         return res.status(400).json({ message: "Invalid schedule data" });
       }
@@ -80,7 +82,7 @@ export function registerRoutes(app: Express): Server {
 
       const existingSchedules = await db.query.schedules.findMany({
         where: and(
-          eq(schedules.userId, req.user.id),
+          eq(schedules.userId, (req.user as User).id),
           gte(schedules.startTime, dayStart),
           lte(schedules.startTime, dayEnd)
         )
@@ -94,7 +96,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Get productivity advice
-  app.get("/api/schedules/advice", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
+  app.get("/api/schedules/advice", requireAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const date = new Date(req.query.date as string);
       if (isNaN(date.getTime())) {
@@ -106,7 +108,7 @@ export function registerRoutes(app: Express): Server {
 
       const schedulesList = await db.query.schedules.findMany({
         where: and(
-          eq(schedules.userId, req.user.id),
+          eq(schedules.userId, (req.user as User).id),
           gte(schedules.startTime, dayStart),
           lte(schedules.startTime, dayEnd)
         ),
@@ -121,9 +123,12 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Create a new schedule
-  app.post("/api/schedules", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
+  app.post("/api/schedules", requireAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const newSchedule = req.body as Omit<Schedule, "id" | "createdAt" | "updatedAt">;
+      const newSchedule: Omit<Schedule, "id" | "createdAt" | "updatedAt"> = {
+        ...req.body,
+        userId: (req.user as User).id,
+      };
 
       const date = new Date(newSchedule.startTime);
       const dayStart = startOfDay(date);
@@ -131,7 +136,7 @@ export function registerRoutes(app: Express): Server {
 
       const existingSchedules = await db.query.schedules.findMany({
         where: and(
-          eq(schedules.userId, req.user.id),
+          eq(schedules.userId, (req.user as User).id),
           gte(schedules.startTime, dayStart),
           lte(schedules.startTime, dayEnd)
         )
@@ -139,32 +144,27 @@ export function registerRoutes(app: Express): Server {
 
       const conflicts = detectScheduleConflicts(newSchedule, existingSchedules);
       const priorityAnalysis = await analyzePriority(
-        { ...newSchedule, id: -1 } as Schedule,
+        newSchedule as Schedule,
         existingSchedules
       );
 
       const timeBlockAnalysis = await analyzeTimeBlock(
-        { ...newSchedule, id: -1 } as Schedule,
+        newSchedule as Schedule,
         existingSchedules
       );
-
-      const scheduleWithMetadata = {
-        ...newSchedule,
-        userId: req.user.id,
-        conflictInfo: conflicts.hasConflict ? conflicts : null,
-        priority: priorityAnalysis.priority,
-        timeBlockCategory: timeBlockAnalysis.category,
-        timeBlockEfficiency: timeBlockAnalysis.efficiencyScore,
-        timeBlockPriority: timeBlockAnalysis.priorityScore,
-        aiSuggestions: timeBlockAnalysis.suggestions,
-      };
 
       const created = await db
         .insert(schedules)
         .values({
-          ...scheduleWithMetadata,
-          startTime: new Date(scheduleWithMetadata.startTime),
-          endTime: new Date(scheduleWithMetadata.endTime),
+          ...newSchedule,
+          priority: priorityAnalysis.priority,
+          timeBlockCategory: timeBlockAnalysis.category,
+          timeBlockEfficiency: timeBlockAnalysis.efficiencyScore,
+          aiSuggestions: {
+            recommendation: timeBlockAnalysis.suggestions.optimization.join(", "),
+            efficiency: timeBlockAnalysis.efficiencyScore,
+            nextActions: timeBlockAnalysis.suggestions.timing
+          },
         })
         .returning();
 
@@ -182,7 +182,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Update a schedule
-  app.patch("/api/schedules/:id", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
+  app.patch("/api/schedules/:id", requireAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
       if (!id || isNaN(parseInt(id))) {
@@ -193,7 +193,7 @@ export function registerRoutes(app: Express): Server {
       const schedule = await db.query.schedules.findFirst({
         where: and(
           eq(schedules.id, parseInt(id)),
-          eq(schedules.userId, req.user.id)
+          eq(schedules.userId, (req.user as User).id)
         )
       });
 
@@ -207,43 +207,45 @@ export function registerRoutes(app: Express): Server {
       let timeBlockAnalysis = null;
 
       if (updateData.startTime || updateData.endTime || updateData.title || updateData.remarks) {
-        const date = new Date(updateData.startTime || new Date());
+        const date = new Date(updateData.startTime || schedule.startTime);
         const dayStart = startOfDay(date);
         const dayEnd = endOfDay(date);
 
         const existingSchedules = await db.query.schedules.findMany({
           where: and(
-            eq(schedules.userId, req.user.id),
+            eq(schedules.userId, (req.user as User).id),
             gte(schedules.startTime, dayStart),
             lte(schedules.startTime, dayEnd)
           )
         });
 
-        const updatedSchedule = { ...schedule, ...updateData } as Schedule;
+        const updatedSchedule = { ...schedule, ...updateData };
 
         if (updateData.startTime || updateData.endTime) {
           conflicts = detectScheduleConflicts(
             updatedSchedule,
             existingSchedules.filter(s => s.id !== parseInt(id))
           );
-          updateData.conflictInfo = conflicts.hasConflict ? conflicts : null;
         }
 
         priorityAnalysis = await analyzePriority(
           updatedSchedule,
           existingSchedules.filter(s => s.id !== parseInt(id))
         );
-        updateData.priority = priorityAnalysis.priority;
 
         timeBlockAnalysis = await analyzeTimeBlock(
           updatedSchedule,
           existingSchedules.filter(s => s.id !== parseInt(id))
         );
 
+        updateData.priority = priorityAnalysis.priority;
         updateData.timeBlockCategory = timeBlockAnalysis.category;
         updateData.timeBlockEfficiency = timeBlockAnalysis.efficiencyScore;
-        updateData.timeBlockPriority = timeBlockAnalysis.priorityScore;
-        updateData.aiSuggestions = timeBlockAnalysis.suggestions;
+        updateData.aiSuggestions = {
+          recommendation: timeBlockAnalysis.suggestions.optimization.join(", "),
+          efficiency: timeBlockAnalysis.efficiencyScore,
+          nextActions: timeBlockAnalysis.suggestions.timing
+        };
       }
 
       const updatedSchedule = await db
@@ -256,7 +258,7 @@ export function registerRoutes(app: Express): Server {
         })
         .where(and(
           eq(schedules.id, parseInt(id)),
-          eq(schedules.userId, req.user.id)
+          eq(schedules.userId, (req.user as User).id)
         ))
         .returning();
 
@@ -278,7 +280,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Delete a schedule
-  app.delete("/api/schedules/:id", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
+  app.delete("/api/schedules/:id", requireAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
       if (!id || isNaN(parseInt(id))) {
@@ -289,14 +291,14 @@ export function registerRoutes(app: Express): Server {
       const schedule = await db.query.schedules.findFirst({
         where: and(
           eq(schedules.id, parseInt(id)),
-          eq(schedules.userId, req.user.id)
+          eq(schedules.userId, (req.user as User).id)
         )
       });
 
       if (schedule) {
         await db.delete(schedules).where(and(
           eq(schedules.id, parseInt(id)),
-          eq(schedules.userId, req.user.id)
+          eq(schedules.userId, (req.user as User).id)
         ));
         // 发送删除通知
         getNotificationService().notifyScheduleDeleted(schedule.title);
@@ -309,11 +311,15 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Theme related routes
-  app.post("/api/theme", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
+  app.post("/api/theme", requireAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const { primary, variant, appearance } = req.body;
-      const themeConfigPath = path.resolve(process.cwd(), "theme.json");
+      const { primary, variant, appearance } = req.body as {
+        primary: string;
+        variant: 'professional' | 'tint' | 'vibrant';
+        appearance: 'light' | 'dark' | 'system';
+      };
 
+      const themeConfigPath = path.resolve(process.cwd(), "theme.json");
       const currentTheme = JSON.parse(await fs.readFile(themeConfigPath, "utf-8"));
       const updatedTheme = {
         ...currentTheme,
@@ -330,7 +336,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Get schedule recommendations
-  app.get("/api/schedules/recommendations", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
+  app.get("/api/schedules/recommendations", requireAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const date = new Date(req.query.date as string);
       if (isNaN(date.getTime())) {
@@ -342,7 +348,7 @@ export function registerRoutes(app: Express): Server {
 
       const schedulesList = await db.query.schedules.findMany({
         where: and(
-          eq(schedules.userId, req.user.id),
+          eq(schedules.userId, (req.user as User).id),
           gte(schedules.startTime, dayStart),
           lte(schedules.startTime, dayEnd)
         ),
@@ -357,9 +363,9 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Analyze schedule with AI
-  app.post("/api/schedules/analyze", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
+  app.post("/api/schedules/analyze", requireAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const { description } = req.body;
+      const { description } = req.body as { description: string };
       if (!description) {
         return res.status(400).json({ message: "Description is required" });
       }
@@ -372,9 +378,9 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Analyze time block
-  app.post("/api/schedules/analyze-timeblock", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
+  app.post("/api/schedules/analyze-timeblock", requireAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const { schedule } = req.body;
+      const { schedule } = req.body as { schedule: Schedule };
       if (!schedule) {
         return res.status(400).json({ message: "Schedule data is required" });
       }
@@ -385,7 +391,7 @@ export function registerRoutes(app: Express): Server {
 
       const existingSchedules = await db.query.schedules.findMany({
         where: and(
-          eq(schedules.userId, req.user.id),
+          eq(schedules.userId, (req.user as User).id),
           gte(schedules.startTime, dayStart),
           lte(schedules.startTime, dayEnd)
         )
@@ -398,11 +404,18 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-
   // Analyze optimal time block intervals
-  app.post("/api/schedules/analyze-intervals", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
+  app.post("/api/schedules/analyze-intervals", requireAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const { schedule, userPreferences } = req.body;
+      const { schedule, userPreferences } = req.body as {
+        schedule: Schedule;
+        userPreferences?: {
+          preferredWorkDuration?: number;
+          preferredBreakDuration?: number;
+          energyPeakHours?: number[];
+        };
+      };
+
       if (!schedule) {
         return res.status(400).json({ message: "Schedule data is required" });
       }
@@ -413,7 +426,7 @@ export function registerRoutes(app: Express): Server {
 
       const existingSchedules = await db.query.schedules.findMany({
         where: and(
-          eq(schedules.userId, req.user.id),
+          eq(schedules.userId, (req.user as User).id),
           gte(schedules.startTime, dayStart),
           lte(schedules.startTime, dayEnd)
         )
@@ -426,9 +439,9 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post("/api/theme/appearance", requireAuth as any, async (req: AuthenticatedRequest, res, next) => {
+  app.post("/api/theme/appearance", requireAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const { appearance } = req.body;
+      const { appearance } = req.body as { appearance: 'light' | 'dark' | 'system' };
       const themeConfigPath = path.resolve(process.cwd(), "theme.json");
 
       const currentTheme = JSON.parse(await fs.readFile(themeConfigPath, "utf-8"));
