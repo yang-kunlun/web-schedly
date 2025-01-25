@@ -87,4 +87,6 @@ export type SelectSchedule = InferModel<typeof schedules, "select">;
 
 // 导出Schedule类型别名方便使用
 export type Schedule = SelectSchedule;
-export type User = SelectUser;
+// 修改User类型定义，确保它与Express.User接口兼容
+export type User = Omit<InferModel<typeof users, "select">, "password">;
+export type UserWithPassword = InferModel<typeof users, "select">;

@@ -1,11 +1,11 @@
 import passport from "passport";
 import { IVerifyOptions, Strategy as LocalStrategy } from "passport-local";
-import { type Express } from "express";
+import { type Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { users, insertUserSchema, type User as SelectUser } from "@db/schema";
+import { users, type User, insertUserSchema } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
 import { sql } from "drizzle-orm";
@@ -29,10 +29,19 @@ const crypto = {
   },
 };
 
-// extend express user object with our schema
+// 扩展 express session类型
+declare module 'express-session' {
+  interface SessionData {
+    passport: {
+      user?: number;
+    };
+  }
+}
+
+// 扩展express请求类型
 declare global {
   namespace Express {
-    interface User extends SelectUser { }
+    interface User extends Omit<User, 'password'> {}
   }
 }
 
@@ -75,7 +84,10 @@ export function setupAuth(app: Express) {
         if (!isMatch) {
           return done(null, false, { message: "密码错误" });
         }
-        return done(null, user);
+
+        // 移除密码字段
+        const { password: _, ...userWithoutPassword } = user;
+        return done(null, userWithoutPassword);
       } catch (err) {
         return done(err);
       }
@@ -89,17 +101,28 @@ export function setupAuth(app: Express) {
   passport.deserializeUser(async (id: number, done) => {
     try {
       const [user] = await db
-        .select()
+        .select({
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          displayName: users.displayName,
+          avatarUrl: users.avatarUrl,
+          preferences: users.preferences,
+          lastLoginAt: users.lastLoginAt,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        })
         .from(users)
         .where(sql`${users.id} = ${id}`)
         .limit(1);
+
       done(null, user);
     } catch (err) {
       done(err);
     }
   });
 
-  app.post("/api/register", async (req, res, next) => {
+  app.post("/api/register", async (req: Request, res: Response, next: NextFunction) => {
     try {
       const result = insertUserSchema.safeParse(req.body);
       if (!result.success) {
@@ -131,7 +154,17 @@ export function setupAuth(app: Express) {
           email,
           password: hashedPassword,
         })
-        .returning();
+        .returning({
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          displayName: users.displayName,
+          avatarUrl: users.avatarUrl,
+          preferences: users.preferences,
+          lastLoginAt: users.lastLoginAt,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        });
 
       // 注册后自动登录
       req.login(newUser, (err) => {
@@ -140,7 +173,7 @@ export function setupAuth(app: Express) {
         }
         return res.json({
           message: "注册成功",
-          user: { id: newUser.id, username: newUser.username },
+          user: newUser,
         });
       });
     } catch (error) {
@@ -148,7 +181,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", (req, res, next) => {
+  app.post("/api/login", (req: Request, res: Response, next: NextFunction) => {
     const result = insertUserSchema.safeParse(req.body);
     if (!result.success) {
       return res
@@ -156,7 +189,7 @@ export function setupAuth(app: Express) {
         .send("无效输入: " + result.error.issues.map(i => i.message).join(", "));
     }
 
-    const cb = (err: any, user: Express.User, info: IVerifyOptions) => {
+    passport.authenticate("local", (err: any, user: Express.User | false, info: IVerifyOptions) => {
       if (err) {
         return next(err);
       }
@@ -172,14 +205,13 @@ export function setupAuth(app: Express) {
 
         return res.json({
           message: "登录成功",
-          user: { id: user.id, username: user.username },
+          user,
         });
       });
-    };
-    passport.authenticate("local", cb)(req, res, next);
+    })(req, res, next);
   });
 
-  app.post("/api/logout", (req, res) => {
+  app.post("/api/logout", (req: Request, res: Response) => {
     req.logout((err) => {
       if (err) {
         return res.status(500).send("登出失败");
@@ -189,7 +221,7 @@ export function setupAuth(app: Express) {
     });
   });
 
-  app.get("/api/user", (req, res) => {
+  app.get("/api/user", (req: Request, res: Response) => {
     if (req.isAuthenticated()) {
       return res.json(req.user);
     }

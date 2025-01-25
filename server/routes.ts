@@ -22,7 +22,7 @@ import { setupAuth } from "./auth";
 
 // 扩展Request类型以包含认证用户信息
 interface AuthenticatedRequest extends Request {
-  user: User;
+  user?: User;
   isAuthenticated(): boolean;
 }
 
@@ -55,7 +55,7 @@ export function registerRoutes(app: Express): Server {
 
       const result = await db.query.schedules.findMany({
         where: and(
-          eq(schedules.userId, (req.user as User).id),
+          eq(schedules.userId, (req.user as User)?.id),
           gte(schedules.startTime, dayStart),
           lte(schedules.startTime, dayEnd)
         ),
@@ -82,7 +82,7 @@ export function registerRoutes(app: Express): Server {
 
       const existingSchedules = await db.query.schedules.findMany({
         where: and(
-          eq(schedules.userId, (req.user as User).id),
+          eq(schedules.userId, (req.user as User)?.id),
           gte(schedules.startTime, dayStart),
           lte(schedules.startTime, dayEnd)
         )
@@ -108,7 +108,7 @@ export function registerRoutes(app: Express): Server {
 
       const schedulesList = await db.query.schedules.findMany({
         where: and(
-          eq(schedules.userId, (req.user as User).id),
+          eq(schedules.userId, (req.user as User)?.id),
           gte(schedules.startTime, dayStart),
           lte(schedules.startTime, dayEnd)
         ),
@@ -127,7 +127,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const newSchedule: Omit<Schedule, "id" | "createdAt" | "updatedAt"> = {
         ...req.body,
-        userId: (req.user as User).id,
+        userId: (req.user as User)?.id,
       };
 
       const date = new Date(newSchedule.startTime);
@@ -136,7 +136,7 @@ export function registerRoutes(app: Express): Server {
 
       const existingSchedules = await db.query.schedules.findMany({
         where: and(
-          eq(schedules.userId, (req.user as User).id),
+          eq(schedules.userId, (req.user as User)?.id),
           gte(schedules.startTime, dayStart),
           lte(schedules.startTime, dayEnd)
         )
@@ -193,7 +193,7 @@ export function registerRoutes(app: Express): Server {
       const schedule = await db.query.schedules.findFirst({
         where: and(
           eq(schedules.id, parseInt(id)),
-          eq(schedules.userId, (req.user as User).id)
+          eq(schedules.userId, (req.user as User)?.id)
         )
       });
 
@@ -213,7 +213,7 @@ export function registerRoutes(app: Express): Server {
 
         const existingSchedules = await db.query.schedules.findMany({
           where: and(
-            eq(schedules.userId, (req.user as User).id),
+            eq(schedules.userId, (req.user as User)?.id),
             gte(schedules.startTime, dayStart),
             lte(schedules.startTime, dayEnd)
           )
@@ -258,7 +258,7 @@ export function registerRoutes(app: Express): Server {
         })
         .where(and(
           eq(schedules.id, parseInt(id)),
-          eq(schedules.userId, (req.user as User).id)
+          eq(schedules.userId, (req.user as User)?.id)
         ))
         .returning();
 
@@ -291,14 +291,14 @@ export function registerRoutes(app: Express): Server {
       const schedule = await db.query.schedules.findFirst({
         where: and(
           eq(schedules.id, parseInt(id)),
-          eq(schedules.userId, (req.user as User).id)
+          eq(schedules.userId, (req.user as User)?.id)
         )
       });
 
       if (schedule) {
         await db.delete(schedules).where(and(
           eq(schedules.id, parseInt(id)),
-          eq(schedules.userId, (req.user as User).id)
+          eq(schedules.userId, (req.user as User)?.id)
         ));
         // 发送删除通知
         getNotificationService().notifyScheduleDeleted(schedule.title);
@@ -348,7 +348,7 @@ export function registerRoutes(app: Express): Server {
 
       const schedulesList = await db.query.schedules.findMany({
         where: and(
-          eq(schedules.userId, (req.user as User).id),
+          eq(schedules.userId, (req.user as User)?.id),
           gte(schedules.startTime, dayStart),
           lte(schedules.startTime, dayEnd)
         ),
@@ -391,7 +391,7 @@ export function registerRoutes(app: Express): Server {
 
       const existingSchedules = await db.query.schedules.findMany({
         where: and(
-          eq(schedules.userId, (req.user as User).id),
+          eq(schedules.userId, (req.user as User)?.id),
           gte(schedules.startTime, dayStart),
           lte(schedules.startTime, dayEnd)
         )
@@ -426,7 +426,7 @@ export function registerRoutes(app: Express): Server {
 
       const existingSchedules = await db.query.schedules.findMany({
         where: and(
-          eq(schedules.userId, (req.user as User).id),
+          eq(schedules.userId, (req.user as User)?.id),
           gte(schedules.startTime, dayStart),
           lte(schedules.startTime, dayEnd)
         )
